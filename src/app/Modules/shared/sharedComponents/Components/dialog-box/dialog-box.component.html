@@ -1,0 +1,16 @@
+<div>
+    <h2 mat-dialog-title>Change Status</h2>
+    <mat-dialog-content>
+        {{data.message}}
+    </mat-dialog-content>
+    <mat-dialog-actions class="flex justify-center">
+        <!-- <div class="flex justify-between"> -->
+            <div class="mr-2">
+                <button mat-button [mat-dialog-close]="false" class="bg-slate-100 p-3 rounded-md">No</button>
+            </div>
+            <div class="ml-2">
+                <button mat-button [mat-dialog-close]="true" class="bg-slate-100 p-3 rounded-md" cdkFocusInitial>yes</button>
+            </div>
+        <!-- </div> -->
+    </mat-dialog-actions>
+</div>

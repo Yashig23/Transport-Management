@@ -1,0 +1,93 @@
+// /* Form Styling */
+// form {
+//     display: flex;
+//     align-items: center;
+//     justify-content: space-between;
+//   }
+  
+//   /* Input Field Styling */
+//   mat-form-field {
+//     position: relative;
+//     width: 100%;
+//   }
+  
+//   mat-icon {
+//     font-size: 1.25rem;
+//     color: gray;
+//   }
+  
+//   /* Button Styling */
+//   button.mat-raised-button {
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     background-color: #1d4ed8;
+//     color: white;
+//   }
+  
+//   button.mat-raised-button:hover {
+//     background-color: #1e40af;
+//   }
+  
+//   /* Override Angular Material Focus Ring */
+//   .mat-form-field-appearance-outline .mat-form-field-outline {
+//     border-color: #3b82f6 !important;
+//   }
+  
+//   button:focus {
+//     outline: none;
+//     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+//   }
+  
+  /* Form Styling */
+form {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  /* Input Field Styling */
+  mat-form-field {
+    position: relative;
+    width: 100%; /* Set background color to white */
+  }
+  
+  /* Search Icon inside Input */
+  .search-icon {
+    color: #333; /* Darker color for the icon */
+    font-weight: bold;
+    font-size: 1.5rem; /* Slightly larger icon */
+  }
+  
+  /* Input box background */
+  .search-input {
+    background-color: white; /* Ensure input field has white background */
+  }
+  
+  /* Button Styling */
+  button.mat-raised-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1d4ed8;
+    color: white;
+  }
+  
+  button.mat-raised-button:hover {
+    background-color: #1e40af;
+  }
+  
+  /* Override Angular Material Focus Ring */
+  .mat-form-field-appearance-outline .mat-form-field-outline {
+    border-color: #3b82f6 !important;
+  }
+  
+  button:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+  }
+  
+  .mat-mdc-raised-button.mat-icon {
+     margin-right: var(--mat-protected-button-icon-spacing, 8px); 
+    //  margin-left: var(--mat-protected-button-icon-offset, -4px);
+}

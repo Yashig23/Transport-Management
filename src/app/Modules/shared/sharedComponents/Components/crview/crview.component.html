@@ -1,0 +1,77 @@
+<section class="p-3">
+    <div class="m-1 p-2">
+        <header class="text-gray-900 text-2xl font-medium">Change Request Preview</header>
+    </div>
+    <div class="flex justify-end">
+        <input type="checkbox" [(ngModel)]="isSelected" id="showActions" class="p-3 w-6 h-6">
+    </div>
+    <div class="bg-slate-100 rounded-md m-2 p-3" [ngClass]="{'opacity-50': !isSelected, 'bg-slate-300': !isSelected}">
+        <!-- <div class="text-xl text-black">Cool Change</div> -->
+        <div class="flex justify-evenly">
+            <div class="section">
+                <h3 class="text-xl font-normal text-gray-800">Fields</h3>
+                <div *ngFor="let field of fields" class=" rounded-md flex justify-center text-lg text-gray-800">
+                    <div *ngIf="changesDetected[field]">{{ field|uppercase }}</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3 class="text-xl font-normal text-gray-800">Current</h3>
+                <div *ngFor="let field of fields">
+                  <div *ngIf="changesDetected[field]"
+                    class="bg-green-300 py-4 px-3 m-2 rounded-md flex justify-center text-lg text-white">
+                    <!-- Handle if the value is an object -->
+                    <ng-container *ngIf="isObject(originalValues[field]); else primitiveOriginal">
+                      {{ originalValues[field]?.productName }} - {{ originalValues[field]?.quantity }}
+                    </ng-container>
+                    <ng-template #primitiveOriginal>
+                      {{ originalValues[field] }}
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="section">
+                <h3 class="text-xl font-normal text-gray-800">Requested</h3>
+                <div *ngFor="let field of fields">
+                  <div *ngIf="changesDetected[field]"
+                    class="bg-red-300 py-4 px-3 m-2 rounded-md flex justify-center text-lg text-white">
+                    <!-- Handle if the value is an object -->
+                    <ng-container *ngIf="isObject(changedValues[field]); else primitiveChanged">
+                      {{ changedValues[field]?.productName }} - {{ changedValues[field]?.quantity }}
+                    </ng-container>
+                    <ng-template #primitiveChanged>
+                      {{ changedValues[field] }}
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
+              
+        </div>
+        <div class="m-2" *ngIf="showButtons && isSelected">
+            <!-- <div class="m-2" > -->
+            <label for="rejectMessage" class="text-sm text-blue-700 m-2">Reject Message</label>
+            <input id="rejectMessage" type="text"
+                class=" border-b-green-500 mt-2 w-full border-none bg-white p-3 mx-2 rounded-md"
+                [(ngModel)]="rejectMessage">
+            <div *ngIf="showMessage" class="text-red-400">
+                {{Message}}
+            </div>
+        </div>
+    </div>
+    <div class="flex justify-end" *ngIf="isSelected">
+        <div class="m-1" *ngIf="showButtons && status != CRStatus.Approved">
+            <!-- <div class="m-1" > -->
+            <button class="px-3 py-2 bg-orange-700 text-white m-1 rounded-md" (click)="setDataAndNavigate()">Accept</button>
+        </div>
+        <div class="m-1" *ngIf="showButtons  && status != CRStatus.Rejected">
+            <!-- <div class="m-1" > -->
+            <!-- <button (click)="changeStatus(OrderStatus.)">Reject</button> -->
+            <button class="px-3 py-2 bg-gray-700 text-white m-1 rounded-md" (click)="changeStatusCR()">Reject</button>
+        </div>
+        <div class="m-1" >
+            <!-- <button (click)="changeStatus(OrderStatus.)">Reject</button> -->
+            <button mat-button [mat-dialog-close]="true"  class="px-3 py-2 bg-gray-700 text-white m-1 rounded-md">Close</button>
+        </div>
+    </div>
+</section>

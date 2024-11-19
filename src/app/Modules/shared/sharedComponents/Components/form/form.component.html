@@ -1,0 +1,273 @@
+<div class="flex bg-white p-8 rounded-lg shadow-xl text-white">
+    <form [formGroup]="transportForm">
+      <div class="flex space-x-8 w-80% ">
+        <div
+          class="flex flex-col space-y-8 p-6 rounded-lg shadow-lg w-1/3  bg-orange-100">
+
+          <div class="form-group">
+            <label for="orderNo" class="block text-lg font-medium text-orange-500">Order No</label>
+            <input id="orderNo" type="text" formControlName="orderNo" style="text-transform: uppercase;"
+              class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Enter Transport ID"
+              [readonly]="(isEdit && status !== OrderStatus.Draft) && showButtons !== true"> <!-- Disable based on condition -->
+            <div *ngIf="transportForm.controls['orderNo']?.errors?.['orderNo']" class="text-red-500 text-sm">
+              {{ transportForm.controls['orderNo'].errors?.['orderNo'] }}
+            </div>
+          </div>
+          
+  
+          <!-- Origin -->
+          <div class="form-group">
+            <label for="origin" class="block text-lg font-medium text-orange-500">Origin</label>
+            <input id="origin" type="text" formControlName="origin"
+              class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Enter Origin">
+            <div *ngIf="transportForm.controls['origin']?.errors?.['originRequired']" class="text-red-500 text-sm">
+              {{ transportForm.controls['origin'].errors?.['originRequired'] }}
+            </div>
+          </div>
+  
+          <!-- Destination -->
+          <div class="form-group">
+            <label for="destination" class="block text-lg font-medium text-orange-500">Destination</label>
+            <input id="destination" type="text" formControlName="destination"
+              class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Enter Destination">
+            <div *ngIf="transportForm.controls['destination']?.errors?.['destinationRequired']"
+              class="text-red-500 text-sm">
+              {{ transportForm.controls['destination'].errors?.['destinationRequired'] }}
+            </div>
+          </div>
+  
+          <!-- Start Date -->
+          <div class="form-group">
+            <label for="startDate" class="block text-lg font-medium text-orange-500">Start Date</label>
+            <mat-form-field class="w-full ">
+              <input matInput [matDatepicker]="startPicker" formControlName="startDate"
+                class="mt-2 block w-full px-4 py-3 rounded-lg  text-lg text-gray-950 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+              <mat-datepicker #startPicker></mat-datepicker>
+            </mat-form-field>
+            <div *ngIf="transportForm.controls['startDate']?.errors?.['startDateValidations']"
+              class="text-red-500 text-sm">
+              {{ transportForm.controls['startDate'].errors?.['startDateValidations'] }}
+            </div>
+          </div>
+  
+          <!-- Day Estimation -->
+          <div class="form-group">
+            <label for="dayEstimation" class="block text-lg font-medium text-orange-500">Day Estimation</label>
+            <input id="dayEstimation" type="text" formControlName="dayEstimation"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Enter Day Estimation">
+            <div *ngIf="transportForm.controls['dayEstimation']?.errors?.['dayEstimation']" class="text-red-500 text-sm">
+              {{ transportForm.controls['dayEstimation'].errors?.['dayEstimation'] }}
+            </div>
+          </div>
+  
+          <!-- End Date -->
+          <div class="form-group">
+            <label for="endDate" class="block text-lg font-medium text-orange-500">Start Date</label>
+            <mat-form-field class="w-full ">
+              <input matInput [matDatepicker]="endPicker" formControlName="endDate"
+                class="mt-2 block w-full px-4 py-3 rounded-lg  text-lg text-gray-950 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <!-- <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle> -->
+              <mat-datepicker #endPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+        </div>
+  
+        <div
+          class="flex flex-col space-y-8 p-6  bg-orange-100 rounded-lg shadow-lg w-1/3 ">
+          <div formArrayName="product">
+            <div class="flex justify-end">
+            </div>
+            <div *ngFor="let product of transportForm.controls['product'].controls; let i = index" [formGroupName]="i"
+              class="form-group">
+              <div>
+  
+                <div>
+                  <label [attr.for]="'products-' + i" class="block text-lg font-medium text-orange-500">Product {{ i + 1
+                    }}</label>
+                  <select [attr.id]="'products-' + i" formControlName="productName"
+                    class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option *ngFor="let items of productList" [value]="items.value"
+                      [disabled]="getSelectedProducts().includes(items.value) && items.value !== product.get('productName')?.value">
+                      {{ items.value }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+  
+              <!-- Quantity -->
+              <label [attr.for]="'quantity-' + i" class="block text-lg font-medium text-orange-500 mt-4">Quantity</label>
+              <input [attr.id]="'quantity-' + i" type="text" formControlName="quantity" step="1" min="0"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <div class="flex justify-end">
+                <button
+                  class="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-600 focus:outline-none"
+                  type="button" (click)="removeProduct(i)"> Remove</button>
+              </div>
+              <div *ngIf="product.controls['quantity']?.errors?.['min']" class="text-red-500 text-sm">Quantity should be
+                greater than 0.</div>
+              <div *ngIf="product.controls['quantity']?.errors?.['pattern']" class="text-red-500 text-sm">Only whole
+                numbers are allowed.</div>
+            </div>
+            <button
+              class="mt-4 bg-purple-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-purple-600 focus:outline-none"
+              type="button" (click)="addProduct()">Add Product</button>
+          </div>
+        </div>
+
+        <!-- <div *ngIf="closeSaveBtn || showSaveBtn || status === OrderStatus.Draft"> -->
+            <div *ngIf="!status || status === OrderStatus.Draft || extraValue">
+            <button mat-icon-button
+             matTooltip="Save"
+             aria-label="Save" class="ml-4 bg-green-400 text-white px-6 py-3 rounded-lg shadow-md hover:bg-green-600 focus:outline-none"
+             type="button" (click)="onSubmit()">
+              <mat-icon>save</mat-icon>
+            </button>
+          </div>
+          
+  
+        <div class="" *ngIf="isEdit && status != OrderStatus.New && !showButtons">
+          <button mat-icon-button
+          matTooltip="Publish"
+          aria-label="Publish"class="ml-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none"
+            type="button" (click)="changeStatus(OrderStatus.New)"><mat-icon>publish</mat-icon></button>
+        </div>
+  
+        <div class="" *ngIf="isEdit && status !== OrderStatus.Draft && !showButtons">
+          <button mat-icon-button
+          matTooltip="Save Change Request"
+          aria-label="Save Change Request" class="ml-4 bg-orange-400 text-white px-6 py-3 rounded-lg shadow-md hover:bg-orange-700 focus:outline-none"
+            type="button" (click)="changeRequest(status)"><mat-icon>change_circle</mat-icon></button>
+        </div>
+  
+        {{status}}
+        <div class="" *ngIf="isEdit && status != OrderStatus.Draft && status != OrderStatus.Cancel ">
+          <button mat-icon-button
+          matTooltip="Cancel"
+          aria-label="Cancel" class="ml-4 bg-red-400 text-white px-6 py-3 rounded-lg shadow-md hover:bg-orange-700 focus:outline-none"
+            type="button" (click)="changeRequest(OrderStatus.Cancel)"><mat-icon>cancel</mat-icon></button>
+        </div>
+  
+      </div>
+  
+      <!-- Second Form -->
+      <div formArrayName="transportArray">
+        <div class="flex justify-end">
+          <button class="p-6 m-3 bg-blue-700 text-white px-6 py-3 rounded-md shadow-lg" (click)="addNewField()">Add New
+            Field
+          </button>
+        </div>
+  
+        <div *ngFor="let control of transportForm.controls['transportArray'].controls; let i = index" [formGroupName]="i"
+          class="flex p-6 m-6 space-y-8 shadow-xl border-orange-300 bg-orange-100 rounded-xl">
+  
+          <!-- Transport Id -->
+          <div class="form-group ml-4 mr-4 mt-8">
+            <label for="transportId" class="block text-lg font-medium text-orange-500">Transport No</label>
+            <input id="transportId" type="text" formControlName="transportId" style="text-transform: uppercase;"
+              class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950"
+              placeholder="Transport Id">
+  
+            <!-- Display error for duplicate Transport No -->
+            <div *ngIf="control.controls['transportId']?.errors?.['transportNoDuplicate']" class="text-red-500">
+              {{ control.controls['transportId'].errors?.['transportNoDuplicate'] }}
+            </div>
+  
+            <!-- Display error for duplicate Transport No -->
+            <div *ngIf="control.controls['transportId']?.errors?.['transportValidators']" class="text-red-500">
+              {{ control.controls['transportId'].errors?.['transportValidators'] }}
+            </div>
+          </div>
+  
+          <!-- Date -->
+          <div class="form-group ml-4 mr-4 mt-8">
+            <label for="date" class="block text-lg font-medium text-orange-500">Date</label>
+            <input id="date" type="date" formControlName="date"
+              class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+  
+            <!-- Display error for duplicate Date -->
+            <div *ngIf="control.controls['date']?.errors?.['dateDuplicate'] " class="text-red-500">
+              {{ control.controls['date'].errors?.['dateDuplicate'] }}
+            </div>
+  
+            <!-- Display error for Date out of range -->
+            <div *ngIf="control.controls['date']?.errors?.['dateOutOfRange']" class="text-red-500">
+              {{ control.controls['date'].errors?.['dateOutOfRange'] }}
+            </div>
+  
+            <!-- Display error for Date out of range -->
+            <div *ngIf="control.controls['date']?.errors?.['DateValidators']" class="text-red-500">
+              {{ control.controls['date'].errors?.['DateValidators'] }}
+            </div>
+          </div>
+  
+          <!-- Origin -->
+          <div class="form-group ml-4 mr-4 mt-8">
+            <label for="origin" class="block text-lg font-medium text-orange-500">Origin</label>
+            <input id="origin" type="text" formControlName="origin"
+              class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+            <div *ngIf="control.controls['origin']?.errors?.['duplicateOrigin']" class="text-red-500">
+              {{ control.controls['origin'].errors?.['duplicateOrigin'] }}
+            </div>
+            <div *ngIf="control.controls['origin']?.errors?.['originNotFound']" class="text-red-500">
+              {{ control.controls['origin'].errors?.['originNotFound'] }}
+            </div>
+          </div>
+  
+          <!-- Destination -->
+          <div class="form-group ml-4 mr-4">
+            <label for="destination" class="block text-lg font-medium text-orange-500">Destination</label>
+            <input id="destination" type="text" formControlName="destination"
+              class="mt-2 block w-full px-6 py-3 rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+          </div>
+  
+          <!-- Product-->
+          <div class="form-group ml-4 mr-4">
+            <label for="product" class="block text-lg font-medium text-orange-500">Product</label>
+            <select formControlName="product"
+              class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+              <option *ngFor="let product of productArray.controls" [value]="product.value.productName">
+                {{ product.value.productName }}
+              </option>
+            </select>
+          </div>
+  
+          <!-- Quantity -->
+          <div class="form-group ml-4 mr-4">
+            <label for="quantity" class="block text-lg font-medium text-orange-500">Quantity</label>
+            <input id="quantity" type="text" formControlName="quantity" step="1" min="0"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+            <div *ngIf="control.controls['quantity']?.errors?.['quantityMismatch']" class="text-red-500">
+              {{ control.controls['quantity'].errors?.['quantityMismatch'] }}
+            </div>
+            <div *ngIf="control.controls['quantity']?.errors?.['qtyIssue']" class="text-red-500">
+              {{ control.controls['quantity'].errors?.['qtyIssue'] }}
+            </div>
+          </div>
+  
+          <div class="flex">
+            <div>
+              <button class="bg-red-400 text-white py-2 px-4 rounded-md shadow-md mx-2" type="button"
+                (click)="removeFormField(i)">Remove </button>
+            </div>
+          </div>
+  
+          <div class="flex">
+            <button *ngIf="showSubmitBtn" class="p-6 m-3 bg-green-600 text-white px-6 py-3 rounded-md shadow-md"
+              (click)="onSubmit()">Submit</button>
+          </div>
+  
+          <div *ngIf="showError" class="text-sm text-red-500 m-3">
+            {{ error }}
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>

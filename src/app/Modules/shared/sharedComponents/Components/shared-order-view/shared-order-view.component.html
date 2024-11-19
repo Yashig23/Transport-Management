@@ -1,0 +1,310 @@
+<div class="flex justify-between">
+
+  <div class="border border-orange-200 p-3 flex flex-wrap">
+    <!-- General order info section -->
+    <div class="flex flex-wrap w-full"> <!-- Added flex-wrap for the order fields to go to the next line if needed -->
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Order No</mat-label>
+          <input matInput [value]="transportViewForm?.orderNo" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Origin</mat-label>
+          <input matInput [value]="transportViewForm.origin" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Destination</mat-label>
+          <input matInput [value]="transportViewForm.destination" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Start Date</mat-label>
+          <input matInput [value]="transportViewForm.startDate | date: 'shortDate'" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>End Date</mat-label>
+          <input matInput [value]="transportViewForm.endDate | date: 'shortDate'" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Day Estimation</mat-label>
+          <input matInput [value]="transportViewForm.dayEstimation" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Status</mat-label>
+          <input matInput [value]="transportViewForm.status" readonly />
+        </mat-form-field>
+      </div>
+
+      <div class="w-full sm:w-1/2 md:w-1/3 p-2">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Products</mat-label>
+          <!-- Concatenating all products into a single string -->
+          <input matInput [value]="getProductDisplayValue()" readonly />
+        </mat-form-field>
+      </div>
+      
+    </div>
+  </div>
+
+  <div class="flex justify-start ">
+    <div>
+      <button [routerLink]="[!showButtons ? '/client/transport-form' : '/admin/transport-form', paramId]" mat-raised-button color="primary"
+        class="bg-blue-500 p-4 m-1 rounded-lg hover:bg-blue-300 text-white" matTooltip="Edit Transport">
+        <mat-icon>edit</mat-icon>
+      </button>
+    </div>
+    <div>
+      <button (click)="changeStatus(OrderStatus.Cancel)" mat-raised-button color="warn"
+        *ngIf="status != OrderStatus.Cancel && status !=OrderStatus.Draft"
+        class="bg-red-500 p-4 m-1 rounded-lg hover:bg-red-300 text-white" matTooltip="Cancel Order">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </div>
+    <div *ngIf="showButtons == false && status != OrderStatus.Draft">
+      <button class="bg-orange-500 p-4 m-1 rounded-lg hover:bg-orange-300 text-white" 
+      [routerLink]="[showButtons === false ? '/client/transport-form' : '/admin/transport-form', paramId]"
+        matTooltip="Change Request">
+        <mat-icon>change_circle</mat-icon>
+      </button>
+    </div>
+    <div *ngIf="showButtons == true && status!= OrderStatus.Active">
+      <button class="bg-green-500 p-4 m-1 rounded-lg hover:bg-green-300 text-white"
+        (click)="changeStatus(OrderStatus.Active)" matTooltip="Activate Order">
+        <mat-icon>check_box</mat-icon>
+      </button>
+    </div>
+    <div *ngIf="showButtons == true">
+      <button class="bg-pink-500 p-4 m-1 rounded-lg hover:bg-pink-300 text-white" (click)="addProduct(paramId)"
+        matTooltip="Assign Suppliers">
+        <mat-icon>draft_orders</mat-icon>
+      </button>
+    </div>
+    <div *ngIf="showButtons == true">
+      <button class="bg-blue-500 p-4 m-1 rounded-lg hover:bg-blue-300 text-white" (click)="assignContainer(paramId)"
+        matTooltip="Assign Container">
+        <mat-icon>assignment</mat-icon>
+      </button>
+    </div>
+  </div>
+
+</div>
+<mat-tab-group (selectedTabChange)="onTabChange($event)">
+  <mat-tab label="Containers">
+    <div *ngIf="currentTab === 0">
+      <!-- Table for Containers -->
+      <table mat-table [dataSource]="containers" class="mat-elevation-z8">
+        <ng-container matColumnDef="containerId">
+          <th mat-header-cell *matHeaderCellDef> Container ID </th>
+          <td mat-cell *matCellDef="let container"> {{ container.sid }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef> Product </th>
+          <td mat-cell *matCellDef="let container"> {{ container.containerId}} </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumnsContainer"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumnsContainer;"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Suppliers">
+    <div *ngIf="currentTab === 1">
+      <!-- Table for Suppliers -->
+      <table mat-table [dataSource]="suppliers" class="mat-elevation-z8">
+        <ng-container matColumnDef="supplierNo">
+          <th mat-header-cell *matHeaderCellDef> Supplier No </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.supplierNo }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="packageName">
+          <th mat-header-cell *matHeaderCellDef> Package Name </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.packageName }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="releasePort">
+          <th mat-header-cell *matHeaderCellDef> Release Port </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.releasePort }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="returnPort">
+          <th mat-header-cell *matHeaderCellDef> Return Port </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.returnPort }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef> Product </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.product }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="quantity">
+          <th mat-header-cell *matHeaderCellDef> Quantity </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.quantity }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="startDate">
+          <th mat-header-cell *matHeaderCellDef> Start Date </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.startDate | date: 'short' }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="endDate">
+          <th mat-header-cell *matHeaderCellDef> End Date </th>
+          <td mat-cell *matCellDef="let supplier"> {{ supplier.endDate | date: 'short' }} </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumnsSupplier"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumnsSupplier;"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+
+  <mat-tab label="Transport">
+    <div *ngIf="currentTab === 2">
+      <!-- Table for Transport -->
+      <table mat-table [dataSource]="transport" class="mat-elevation-z8">
+        <ng-container matColumnDef="transportId">
+          <th mat-header-cell *matHeaderCellDef> Transport ID </th>
+          <td mat-cell *matCellDef="let transport"> {{ transport.transportId }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef> Date </th>
+          <td mat-cell *matCellDef="let transport"> {{ transport.date | date: 'short' }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="origin">
+          <th mat-header-cell *matHeaderCellDef> Origin </th>
+          <td mat-cell *matCellDef="let transport"> {{ transport.origin }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="destination">
+          <th mat-header-cell *matHeaderCellDef> Destination </th>
+          <td mat-cell *matCellDef="let transport"> {{ transport.destination }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef> Product </th>
+          <td mat-cell *matCellDef="let transport"> {{ transport.product }} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="quantity">
+          <th mat-header-cell *matHeaderCellDef> Quantity </th>
+          <td mat-cell *matCellDef="let transport"> {{ transport.quantity }} </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumnsTransport"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumnsTransport;"></tr>
+      </table>
+    </div>
+  </mat-tab>
+
+<mat-tab label="Change Request">
+  <div *ngIf="currentTab === 3">
+    <!-- Table for Change Request (OrderFormType) -->
+    <table mat-table [dataSource]="cr" class="mat-elevation-z8">
+
+      <!-- Order Number Column -->
+      <ng-container matColumnDef="Id">
+        <th mat-header-cell *matHeaderCellDef> Id </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.orderNo }} </td>
+      </ng-container>
+
+      <!-- Created At Column -->
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef> Created At </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.createdAt | date: 'short' }} </td>
+      </ng-container>
+
+      <!-- Updated At Column -->
+      <ng-container matColumnDef="updatedAt">
+        <th mat-header-cell *matHeaderCellDef> Updated At </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.updatedAt | date: 'short' }} </td>
+      </ng-container>
+
+      <!-- Origin Column -->
+      <ng-container matColumnDef="origin">
+        <th mat-header-cell *matHeaderCellDef> Origin </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.origin }} </td>
+      </ng-container>
+
+      <!-- Destination Column -->
+      <ng-container matColumnDef="destination">
+        <th mat-header-cell *matHeaderCellDef> Destination </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.destination }} </td>
+      </ng-container>
+
+      <!-- Status Column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef> Status </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.status }} </td>
+      </ng-container>
+
+      <!-- CR Status Column -->
+      <ng-container matColumnDef="cr">
+        <th mat-header-cell *matHeaderCellDef> CR Status </th>
+        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.crStatus }} </td>
+      </ng-container>
+
+      <!-- Actions Button Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef> Actions </th>
+        <td mat-cell *matCellDef="let changeRequest">
+          
+          <!-- View Button (Always Visible) -->
+          <button mat-raised-button color="primary"
+            class="bg-yellow-500 p-4 m-1 rounded-lg hover:bg-yellow-300 text-white"
+            matTooltip="View Change Request"
+            (click)="openCRView(changeRequest)">
+            <mat-icon>visibility</mat-icon>
+          </button>
+
+          <!-- Approve Button (Visible if showButtons is true, CR is not Pending or Approved) -->
+          <button mat-raised-button color="primary"
+            *ngIf="showButtons && changeRequest.crStatus !== CRStatus.Pending && changeRequest.crStatus !== CRStatus.Approved"
+            class="bg-green-500 p-4 m-1 rounded-lg hover:bg-green-300 text-white"
+            matTooltip="Mark as Approved"
+            (click)="openCRView(changeRequest)">
+            <mat-icon>task_alt</mat-icon>
+          </button>
+
+          <!-- Reject Button (Visible if showButtons is true, CR is not Pending or Rejected) -->
+          <button mat-raised-button color="primary"
+            *ngIf="showButtons && changeRequest.crStatus !== CRStatus.Pending && changeRequest.crStatus !== CRStatus.Rejected"
+            class="bg-red-500 p-4 m-1 rounded-lg hover:bg-red-300 text-white"
+            matTooltip="Reject Change Request"
+            (click)="openCRView(changeRequest)">
+            <mat-icon>dangerous</mat-icon>
+          </button>
+
+        </td>
+      </ng-container>
+
+      <!-- Table Header and Row Definitions -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumnsChangeRequest"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumnsChangeRequest;"></tr>
+    </table>
+  </div>
+</mat-tab>
+
+
+
+</mat-tab-group>

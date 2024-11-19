@@ -1,0 +1,148 @@
+<div class="bg-white min-h-screen p-6">
+  <!-- Header -->
+  <div class="flex justify-start">
+    <h1 class="text-3xl font-bold text-center text-orange-700 mb-8">Order List</h1>
+  </div>
+
+  <!-- Container for the search box and the 'add' button -->
+  <div class="p-4 m-0 bg-gray-200 rounded-lg">
+    <div class="flex justify-between items-center">
+
+      <div>
+        <div class="flex items-center max-w-sm mx-auto" >
+          <!-- Search Input Field -->
+          <mat-form-field appearance="outline" class="w-full h-13 bg-white">
+            <input matInput [(ngModel)]="searchQuery" placeholder="Search..." id="simple-search" class="search-input h-10 bg-slate-200" 
+                   (keydown.enter)="onSearch($event)">
+            <mat-icon matPrefix class="search-icon">search</mat-icon>
+          </mat-form-field>
+        </div>
+      </div>
+      
+      <!-- Add Transport Button -->
+      <div *ngIf="showButtons !== true">
+        <button mat-raised-button color="primary" routerLink="transport-form" >
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table mat-table [dataSource]="searchResults" class="min-w-full mat-elevation-z8">
+        <!-- Order Number Column -->
+        <ng-container matColumnDef="orderNo">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Order No </th>
+          <td mat-cell *matCellDef="let order" class="text-lg">{{ order.orderNo }}</td>
+        </ng-container>
+
+        <!-- Origin Column -->
+        <ng-container matColumnDef="origin">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Origin </th>
+          <td mat-cell *matCellDef="let order" class="text-lg">{{ order.origin }}</td>
+        </ng-container>
+
+        <!-- Destination Column -->
+        <ng-container matColumnDef="destination">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Destination </th>
+          <td mat-cell *matCellDef="let order" class="text-lg">{{ order.destination }}</td>
+        </ng-container>
+
+        <!-- Product Column -->
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Product </th>
+          <td mat-cell *matCellDef="let order" class="text-lg">
+            <table>
+              <tbody>
+                <tr *ngFor="let product of order.product">
+                  <td class="py-2 font-normal text-gray-600 w-20 mr-2">{{ product.productName }}</td>
+                  <td class="py-2 font-normal text-gray-600 w-15 ">{{ product.quantity }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Status </th>
+          <td mat-cell *matCellDef="let order">
+            <span
+              class="w-24 h-8 flex justify-center items-center rounded-md text-sm font-medium text-center text-white shadow-lg"
+              [ngClass]="{
+                'bg-yellow-400': order.status?.toLowerCase() === OrderStatus.Draft,
+                'bg-green-400': order.status?.toLowerCase() === OrderStatus.New,
+                'bg-red-500': order.status?.toLowerCase() === OrderStatus.Closed,
+                'bg-red-400': order.status?.toLowerCase() === OrderStatus.Cancel,
+                'bg-orange-400': order.status?.toLowerCase() === OrderStatus.ChangeRequest,
+                'bg-blue-400': order.status?.toLowerCase() === OrderStatus.Active
+              }">
+              {{ order.status }}
+            </span>
+
+          </td>
+        </ng-container>
+
+
+        <!-- Start Date Column -->
+        <ng-container matColumnDef="startDate">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Start Date </th>
+          <td mat-cell *matCellDef="let order" class="text-lg">{{ order.startDate| date: 'dd-MMM-yyyy HH:mm'}}</td>
+        </ng-container>
+
+        <!-- End Date Column -->
+        <ng-container matColumnDef="endDate">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> End Date </th>
+          <td mat-cell *matCellDef="let order" class="text-lg">{{ order.endDate| date: 'dd-MMM-yyyy HH:mm' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="text-gray-500 font-medium text-lg"> Actions </th>
+          <td mat-cell *matCellDef="let order">
+            <!-- Edit Button for Draft Orders -->
+            <div class="flex justify-start items-center">
+              <button mat-icon-button matTooltip="Edit" aria-label="Edit"
+                *ngIf="(order.status === OrderStatus.Draft ||showButtons == true) && order.status != OrderStatus.Cancel"
+                class="bg-yellow-500  hover:bg-yellow-600 text-white rounded-md p-2 m-1"
+                [routerLink]="[showButtons === false ? '/client/transport-form' : '/admin/transport-form', order.id]">
+                <mat-icon>edit</mat-icon>
+              </button>
+
+              <!-- View Button for All Orders -->
+              <button mat-icon-button matTooltip="Visibility Button" matTooltip="View Details" aria-label="View Details"
+                class="bg-orange-500 hover:bg-orange-600 text-white rounded-md p-2 m-1"
+                *ngIf="order.status != OrderStatus.Cancel"
+                [routerLink]="[showButtons === false ? '/client/order-view' : '/admin/order-view', order.id]">
+                <mat-icon>visibility</mat-icon>
+              </button>
+
+              <!--Change Request for Orders-->
+              <button mat-icon-button matTooltip="Change Request Button" matTooltip="Change Request"
+                aria-label="Change Request" *ngIf="order.status !== OrderStatus.Draft && showButtons === false && order.status != OrderStatus.Cancel"
+                class="bg-green-500 hover:bg-green-300 text-white rounded-md p-2 m-1"
+                [routerLink]="['/client/transport-form', order.id]" >
+                <mat-icon>change_circle</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+
+        <!-- Row Definition -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+        <!-- No Results -->
+        <ng-template #noResults>
+          <div class="flex justify-center items-center h-full">
+            <p class="text-red-500 m-4 text-xl font-semibold">No orders found</p>
+          </div>
+        </ng-template>
+      </table>
+
+      <!-- Optional message display -->
+      <div *ngIf="showMessage" class="text-red-400 font-medium text-center mt-4">
+        {{ message }}
+      </div>
+    </div>
+  </div>
+</div>

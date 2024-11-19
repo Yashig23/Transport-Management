@@ -1,0 +1,20 @@
+::ng-deep .mat-mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline .mdc-notched-outline__leading,
+::ng-deep .mat-mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline .mdc-notched-outline__notch,
+::ng-deep .mat-mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline .mdc-notched-outline__trailing {
+  border-width: var(--mdc-outlined-text-field-outline-width);
+  border-color: white !important;
+}
+
+  
+.error-messages {
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+.error-messages .alert {
+  margin-bottom: 5px;
+}
