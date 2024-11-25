@@ -9,19 +9,19 @@
     <div class="flex justify-between items-center">
 
       <div>
-        <div class="flex items-center max-w-sm mx-auto" >
+        <div class="flex items-center max-w-sm mx-auto">
           <!-- Search Input Field -->
           <mat-form-field appearance="outline" class="w-full h-13 bg-white">
-            <input matInput [(ngModel)]="searchQuery" placeholder="Search..." id="simple-search" class="search-input h-10 bg-slate-200" 
-                   (keydown.enter)="onSearch($event)">
+            <input matInput [(ngModel)]="searchQuery" placeholder="Search..." id="simple-search"
+              class="search-input h-10 bg-slate-200" (keydown.enter)="onSearch($event)">
             <mat-icon matPrefix class="search-icon">search</mat-icon>
           </mat-form-field>
         </div>
       </div>
-      
+
       <!-- Add Transport Button -->
       <div *ngIf="showButtons !== true">
-        <button mat-raised-button color="primary" routerLink="transport-form" >
+        <button mat-raised-button color="primary" routerLink="transport-form">
           <mat-icon>add</mat-icon>
         </button>
       </div>
@@ -70,11 +70,12 @@
               class="w-24 h-8 flex justify-center items-center rounded-md text-sm font-medium text-center text-white shadow-lg"
               [ngClass]="{
                 'bg-yellow-400': order.status?.toLowerCase() === OrderStatus.Draft,
-                'bg-green-400': order.status?.toLowerCase() === OrderStatus.New,
+                'bg-green-400': order.status?.toLowerCase() === OrderStatus.Published,
                 'bg-red-500': order.status?.toLowerCase() === OrderStatus.Closed,
                 'bg-red-400': order.status?.toLowerCase() === OrderStatus.Cancel,
-                'bg-orange-400': order.status?.toLowerCase() === OrderStatus.ChangeRequest,
-                'bg-blue-400': order.status?.toLowerCase() === OrderStatus.Active
+                'bg-orange-400': order.status?.toLowerCase() === OrderStatus.Assigned,
+                'bg-blue-400': order.status?.toLowerCase() === OrderStatus.Active,
+                'bg-blue-600': order.status?.toLowerCase() === OrderStatus.Ordered
               }">
               {{ order.status }}
             </span>
@@ -101,26 +102,36 @@
             <!-- Edit Button for Draft Orders -->
             <div class="flex justify-start items-center">
               <button mat-icon-button matTooltip="Edit" aria-label="Edit"
-                *ngIf="(order.status === OrderStatus.Draft ||showButtons == true) && order.status != OrderStatus.Cancel"
-                class="bg-yellow-500  hover:bg-yellow-600 text-white rounded-md p-2 m-1"
+                *ngIf="(order.status !== OrderStatus.Closed && (order.status === OrderStatus.Draft || showButtons))"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white rounded-md p-2 m-1"
                 [routerLink]="[showButtons === false ? '/client/transport-form' : '/admin/transport-form', order.id]">
                 <mat-icon>edit</mat-icon>
               </button>
 
+
               <!-- View Button for All Orders -->
               <button mat-icon-button matTooltip="Visibility Button" matTooltip="View Details" aria-label="View Details"
+                *ngIf="(showButtons || order.status != OrderStatus.Draft || order.status == OrderStatus.Closed)"
                 class="bg-orange-500 hover:bg-orange-600 text-white rounded-md p-2 m-1"
-                *ngIf="order.status != OrderStatus.Cancel"
                 [routerLink]="[showButtons === false ? '/client/order-view' : '/admin/order-view', order.id]">
                 <mat-icon>visibility</mat-icon>
               </button>
 
               <!--Change Request for Orders-->
               <button mat-icon-button matTooltip="Change Request Button" matTooltip="Change Request"
-                aria-label="Change Request" *ngIf="order.status !== OrderStatus.Draft && showButtons === false && order.status != OrderStatus.Cancel"
+                aria-label="Change Request"
+                *ngIf="order.status !== OrderStatus.Draft && showButtons === false  && order.status != OrderStatus.Closed && order.status != OrderStatus.Cancel"
                 class="bg-green-500 hover:bg-green-300 text-white rounded-md p-2 m-1"
-                [routerLink]="['/client/transport-form', order.id]" >
+                [routerLink]="['/client/transport-form', order.id]">
                 <mat-icon>change_circle</mat-icon>
+              </button>
+
+              <!--Copy action button-->
+              <button mat-icon-button matTooltip="Copy Button" matTooltip="Copy Button"
+                aria-label="Copy Button" *ngIf="!showButtons"
+                class="bg-gray-200 hover:bg-blue-100 text-gray-600 rounded-md p-2 m-1"
+                (click)="openCopyDialog(order.id)">
+                <mat-icon>content_copy</mat-icon>
               </button>
             </div>
           </td>

@@ -19,7 +19,6 @@ export class OrderViewAdminComponent implements OnInit{
 
   public initializeEditForm(): void {
     this.activatedRoute.paramMap.subscribe(paramMap => {
-      // console.log(paramMap);
       this.paramId = String(paramMap.get('id'));
     });
   }

@@ -21,12 +21,7 @@ export class OrderViewClientComponent implements OnInit{
 
   public initializeEditForm(): void {
     this.activatedRoute.paramMap.subscribe(paramMap => {
-      // console.log(paramMap);
       this.paramId = String(paramMap.get('id'));
-      // if (this.paramId) {
-      //   this.isEdit = true;
-      //   this.getTransportByID();
-      // }
     });
   }
 }

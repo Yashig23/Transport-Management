@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormControl, Validators, FormArray, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { AvailableQuantity, ConatinerAssignmentForm, OrderFormType, ProductQuantity, SupplierFrom, TransportFormType, Supplier, MasterSupplier, ContainerForm, MasterContainer } from '../../Constants/constants';
+import { AvailableQuantity, OrderFormType, ProductQuantity, SupplierFrom, TransportFormType, Supplier, MasterSupplier, ContainerForm, MasterContainer, OrderStatus, ConatinerAssignmentForm, SupplierFormType } from '../../Constants/constants';
 import { MatDialogRef } from '@angular/material/dialog';
 import { TransportFormService } from '../../Services/transport-form.service';
-import { ContainerAssignedComponent } from '../container-assigned/container-assigned.component';
+import { toasterService } from '../../Services/toaster.service';
 
 @Component({
   selector: 'app-supplier-dialog',
@@ -12,7 +12,7 @@ import { ContainerAssignedComponent } from '../container-assigned/container-assi
 })
 export class SupplierDialogComponent implements OnInit {
   public supplierForms!: FormGroup<MasterSupplier>;
-  public supplyFormData?: OrderFormType|null;
+  public supplyFormData!: OrderFormType | null;
   public startDate!: Date | null;
   public endDate: Date | null = null;
   public showError: boolean = false;
@@ -24,45 +24,36 @@ export class SupplierDialogComponent implements OnInit {
   public totalQuantity: ProductQuantity[] = [];
   public assignContainerForm?: boolean;
   public availableProduct: AvailableQuantity[] = [];
-  public formErrorMessages: string[] = []; 
+  public formErrorMessages: string[] = [];
+  public editForm!: boolean;
 
 
-  constructor(public dialogRef: MatDialogRef<SupplierDialogComponent>, private _TransportService: TransportFormService) {
-    // if (this.assignContainerForm) {
-    //   this.initializeContainerForm();
-    // }
-    // this.initializeForm();
-   }
+  constructor(public dialogRef: MatDialogRef<SupplierDialogComponent>, private _TransportService: TransportFormService, private _toasterService: toasterService) { }
 
   ngOnInit(): void {
     if (this.assignContainerForm) {
       this.initializeContainerForm();
     }
     this.initializeForm();
-    // console.log('assignform', this.assignContainerForm);
+    if (this.editForm) {
+      this.editFormInitialization();
+    }
   }
 
-  // Method to get the supplier control for a specific index and control name
   public getSupplierControl(index: number, controlName: string): AbstractControl | null {
     const suppliersArray = this.supplierForms.controls.suppliers;
     return suppliersArray.at(index).get(controlName);
   }
 
   public addContainersForm(supplierIndex: number) {
-    // Ensure containerForm is initialized
     if (!this.containerForm) {
       this.initializeContainerForm();
     }
-  
-    // Access the supplier form group by its index
-    const supplierFormGroup = this.supplierForms.controls.suppliers.at(supplierIndex) ;
-  
-    // Access the containers FormArray within the supplierFormGroup
+
+    const supplierFormGroup = this.supplierForms.controls.suppliers.at(supplierIndex);
+
     const containersGroup = supplierFormGroup.controls.containers;
-  
-    // Ensure the containers group exists
     if (containersGroup) {
-      // Add a new container form group to the containers FormArray
       containersGroup.push(this.createContainerForm());
     } else {
       console.error('Containers form array is not defined.');
@@ -72,31 +63,112 @@ export class SupplierDialogComponent implements OnInit {
   get suppliers(): FormArray<FormGroup<SupplierFrom>> {
     return this.supplierForms.controls.suppliers;
   }
+
+  // public editFormInitialization(): void {
+  //   if (this.editForm && this.orderId) {
+  //     const suppliersArray = this.supplierForms.controls.suppliers;
+  //     this._TransportService.getOrderById(this.orderId).subscribe({
+  //       next: (data: TransportFormType) => {
+  //         const supplierFormdata = data.suppliers || [];
+  //         this.setLoading = false;
+
+  //         supplierFormdata.forEach((supplier) => {
+  //           this.productQuantityArray.push({
+  //             productName: supplier.product,
+  //             quantity: supplier.quantity
+  //           });
+  //           // Add supplier form
+  //           const supplierForm = this.createSupplierForm();
+  //           supplierForm.patchValue(supplier);
+  //           suppliersArray.push(supplierForm);
+  //         })
+  //       },
+  //       error: () => {
+  //         this._toasterService.toasterError('Error Occured');
+  //         console.error('Some error occured');
+  //       }
+  //     })
+  //   }
+  //   else {
+  //     this._toasterService.toasterWarning('No Order Id present');
+  //     return;
+  //   }
+  // }
+
+  public editFormInitialization(): void {
+    if (this.editForm && this.orderId) {
+      const suppliersArray = this.supplierForms.controls.suppliers;
+      this._TransportService.getOrderById(this.orderId).subscribe({
+        next: (data: TransportFormType) => {
+          const supplierFormdata = data.suppliers || [];
+          this.setLoading = false;
   
+          supplierFormdata.forEach((supplier) => {
+            // Check if the product already exists in productQuantityArray
+            const isProductExist = this.productQuantityArray.some(
+              (p) => p.productName === supplier.product
+            );
+  
+            if (!isProductExist) {
+              // Only add unique products to the array
+              this.productQuantityArray.push({
+                productName: supplier.product,
+                quantity: supplier.quantity,
+              });
+            }
+  
+            // Add supplier form
+            const supplierForm = this.createSupplierForm();
+            supplierForm.patchValue(supplier);
+            suppliersArray.push(supplierForm);
+          });
+        },
+        error: () => {
+          this._toasterService.toasterError('Error Occured');
+          console.error('Some error occured');
+        }
+      });
+    } else {
+      this._toasterService.toasterWarning('No Order Id present');
+      return;
+    }
+  }
+  
+
+  public uniqueContainerIdsValidatior(): ValidatorFn {
+    return (formArray: AbstractControl): ValidationErrors | null => {
+      if (!formArray || !formArray.value) {
+        return null;
+      }
+
+      const containerIds = formArray.value.map((group: ConatinerAssignmentForm) => group.containerId?.toUpperCase() ?? null);
+      const duplicates = containerIds.filter((id: string, index: number) => id && containerIds.indexOf(id) !== index);
+
+      return duplicates.length > 0 ? { duplicateContainerIds: true } : null;
+    }
+  }
+
   private initializeContainerForm(): void {
     this.containerForm = new FormGroup({
-      containers: new FormArray<FormGroup<ContainerForm>>([]), // Empty array initially
+      containers: new FormArray<FormGroup<ContainerForm>>([]), 
     });
-  }  
+  }
 
   private initializeForm(): void {
-    // Always initialize the form, regardless of assignContainerForm
     this.supplierForms = new FormGroup<MasterSupplier>({
       suppliers: new FormArray<FormGroup<SupplierFrom>>([], this.quantityValidator()), // Start with an empty form array
     });
 
-    // Case when assignContainerForm is not defined
     if (this.assignContainerForm == undefined) {
-      // Initialize with one empty supplier form
-      const suppliersArray = this.supplierForms.controls.suppliers ;
-      suppliersArray.push(this.createSupplierForm());
+      const suppliersArray = this.supplierForms.controls.suppliers;
+      if (!this.editForm) {
+        suppliersArray.push(this.createSupplierForm());
+      }
     }
 
     if (this.assignContainerForm) {
       this.setLoading = true;
       const suppliersArray = this.supplierForms.controls.suppliers;
-
-      // Assuming you have the orderNo available
       const orderNo = this.orderId;
 
       this._TransportService.getOrderById(orderNo).subscribe({
@@ -105,8 +177,6 @@ export class SupplierDialogComponent implements OnInit {
           this.setLoading = false;
 
           supplierFormdata.forEach((supplier) => {
-            console.log('supplier', supplier);
-            // Push both supplier.product and supplier.quantity into productQuantityArray
             this.productQuantityArray.push({
               productName: supplier.product,
               quantity: supplier.quantity
@@ -128,7 +198,6 @@ export class SupplierDialogComponent implements OnInit {
         },
         error: (err) => {
           this.setLoading = false;
-          console.log(err);
         }
       });
     } else {
@@ -136,39 +205,28 @@ export class SupplierDialogComponent implements OnInit {
       this.convertToAvailableProduct();
     }
   }
-  // Add containers based on supplier quantity
 
-private addContainersForSupplier(quantity: string | null, supplierForm: FormGroup<SupplierFrom>): void {
-  const containersArray = supplierForm.controls.containers;
+  private addContainersForSupplier(quantity: string | null, supplierForm: FormGroup<SupplierFrom>): void {
+    const containersArray = supplierForm.controls.containers;
 
-  // Convert quantity to a number if it's a string
-  const numberOfContainers = quantity ? parseInt(quantity) : 1;
+    const numberOfContainers = quantity ? parseInt(quantity) : 1;
 
-  const supplierNo = supplierForm.controls.supplierNo.value;
+    const supplierNo = supplierForm.controls.supplierNo.value;
 
-  // Add the correct number of container forms
-  for (let i = 0; i < numberOfContainers; i++) {
-    const containerForm = this.createContainerForm();
+    for (let i = 0; i < numberOfContainers; i++) {
+      const containerForm = this.createContainerForm();
+      containerForm.patchValue({ sid: supplierNo });
 
-    // Patch the sid with the supplierNo value
-    containerForm.patchValue({ sid: supplierNo });
-
-    // Push the containerForm (with the patched sid) into the containers array
-    containersArray.push(containerForm);
+      containersArray.push(containerForm);
+    }
   }
-}
 
   getContainersFromSupplier(supplierIndex: number): any[] {
-    // Access the specific supplier form group by index
     const supplierFormGroup = this.supplierForms.controls.suppliers.at(supplierIndex);
-  
-    // Access the containers FormArray within the supplierFormGroup
     const containersArray = supplierFormGroup.controls.containers;
-  
-    // Return the value of the containers form array
     return containersArray.value;
   }
-  
+
   public containersField(): void {
     this.containerForm = new FormGroup({
       containers: new FormArray<FormGroup<ContainerForm>>([this.createContainerForm()]), // Initializing with one container form
@@ -184,9 +242,8 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
 
   public quantityValidator(): ValidatorFn {
     return (formArray: AbstractControl): ValidationErrors | null => {
-      const suppliers = formArray.value as Supplier[]; // Casting formArray value to Supplier[]
+      const suppliers = formArray.value as Supplier[];
 
-      // Create a map to track remaining quantities for each product
       let remainingQuantities = this.productQuantityArray.reduce((acc, product) => {
         if (product.productName && product.quantity) {
           acc[product.productName] = parseInt(product.quantity) ?? 0;
@@ -198,10 +255,9 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
         const remainingQuantity = remainingQuantities[supplier.product];
 
         if (remainingQuantity === undefined) {
-          return; // Skip if product not found
+          return;
         }
 
-        // Check if form control exists and is not null before setting the error
         const control = formArray.get(`${index}`);
         if (control && supplier.quantity > remainingQuantity) {
           control.setErrors({ quantityMismatch: `Quantity for ${supplier.product} exceeds the allowed limit.` });
@@ -209,7 +265,6 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
           remainingQuantities[supplier.product] -= supplier.quantity;
         }
       });
-
       return null;
     };
   }
@@ -220,11 +275,11 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
       packageName: new FormControl<string | null>('', [Validators.required, Validators.pattern('^[a-zA-Z]+$')]),
       quantity: new FormControl<string | null>(null, [Validators.required, Validators.min(1)]),
       product: new FormControl<string | null>('', [Validators.required]),
-      releasePort: new FormControl<string | null>('', [Validators.required, Validators.pattern('^[A-Z]+$')]),
-      returnPort: new FormControl<string | null>('', [Validators.required, Validators.pattern('^[A-Z]+$')]),
+      releasePort: new FormControl<string | null>('', [Validators.required]),
+      returnPort: new FormControl<string | null>('', [Validators.required]),
       startDate: new FormControl<Date | null>(null, [Validators.required]),
       endDate: new FormControl<string | null>(null, [Validators.required]),
-      containers: new FormArray<FormGroup<ContainerForm>>([])
+      containers: new FormArray<FormGroup<ContainerForm>>([], this.uniqueContainerIdsValidatior())
     });
   }
 
@@ -246,14 +301,11 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
   public endDateFilter: (date: Date | null) => boolean = (date: Date | null) => {
     if (date === null) return true;
 
-    // Disable dates before the selected start date
     if (this.endDate) {
       const endDateaddOne = new Date(this.endDate);
-      endDateaddOne.setDate(this.endDate.getDate() + 1); // Add 1 day from end date
-      return date > endDateaddOne; // Allow dates after the start date - 1
+      endDateaddOne.setDate(this.endDate.getDate() + 1); 
+      return date > endDateaddOne; 
     }
-
-    // If there's no end date, allow all dates
     return true;
   };
 
@@ -263,90 +315,111 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
   }
 
   public removeSupplierForm(index: number): void {
-    // Access the suppliers FormArray directly through controls
     const suppliersArray = this.supplierForms.controls.suppliers;
 
-    // Check if the length of the suppliers array is 1
     if (suppliersArray.controls.length === 1) {
     } else {
-      // Remove the form at the specified index
       suppliersArray.removeAt(index);
     }
   }
 
   public reset(): void {
-    const suppliersArray = this.supplierForms.controls.suppliers ;
+    const suppliersArray = this.supplierForms.controls.suppliers;
 
-    // Reset all controls in the suppliers array
-    suppliersArray.clear(); // Clear all controls
+    suppliersArray.clear();
 
-    // Reinitialize with one empty form
     suppliersArray.push(this.createSupplierForm());
 
     this.showError = false;
   }
 
-  // Convert productQuantityArray to availableProduct
   public convertToAvailableProduct(): void {
     this.availableProduct = this.productQuantityArray.map(item => ({
-      productName: item.productName || '', // Handle null value
-      availableQuantity: item.quantity ? parseInt(item.quantity) : 0 // If quantity is null, default to 0
+      productName: item.productName || '',
+      availableQuantity: item.quantity ? parseInt(item.quantity) : 0 
     }));
   }
-  
+
 
   public storeSupplyFormValue(): void {
     if (!this.supplyFormData) {
       return;
     }
 
-    // Assuming `product` is an array, make sure to initialize it correctly
     this.productQuantityArray = this.supplyFormData.product || [];
 
-    // Convert the startDate string to a Date object
     const startDateString = this.supplyFormData.startDate;
     const endDateString = this.supplyFormData.endDate;
 
-    // Handle potential invalid date strings
     if (startDateString) {
       this.startDate = new Date(startDateString);
 
-      // Optional: Check if the date is valid
       if (isNaN(this.startDate.getTime())) {
-        this.startDate = null; // or set to a default date
+        this.startDate = null;
       }
     }
     if (endDateString) {
       this.endDate = new Date(endDateString);
 
-      // Optional: Check if the date is valid
       if (isNaN(this.endDate.getTime())) {
-        this.startDate = null; // or set to a default date
+        this.startDate = null; 
       }
     }
     else {
-      this.startDate = null; // or set to a default date
+      this.startDate = null;
     }
   }
 
   public onSubmit(): void {
-    // Validate forms first
     if (this.supplierForms.valid || this.containerForm.valid) {
-      // Check if all products and their quantities are accounted for
       if (!this.assignContainerForm) {
         const allProductsValid = this.checkProductQuantities();
         if (!allProductsValid) {
-          // alert('Some products are missing or their quantities are not correct.');
-          return; // Stop form submission
+          return;
         }
       }
-  
-      // Get the suppliers data from the form
+
+      if (this.editForm) {
+
+        this._TransportService.getOrderById(this.orderId).subscribe({
+          next: (existingOrder) => {
+            const supplierFormsArray = this.supplierForms.controls['suppliers'].value;
+            existingOrder.suppliers = supplierFormsArray as SupplierFormType[];
+            this._TransportService.updateOrder(this.orderId, existingOrder).subscribe({
+              next: () => {
+                this._toasterService.toasterSuccess("Updated Successfully");
+                this.dialogRef.close();
+              },
+              error: (err) => {
+                console.error("Error updating order:", err);
+              },
+            });
+          },
+          error: () => {
+            console.error('error',)
+          }
+        })
+
+        return;
+      }
+
+      const suppliersArray = this.supplierForms.controls['suppliers'];
+
+      for (let supplierFormGroup of suppliersArray.controls) {
+        const containersArray = supplierFormGroup.controls['containers'];
+
+        const validationErrors = containersArray.errors;
+
+        if (validationErrors?.['duplicateContainerIds']) {
+          console.error('Duplicate container IDs found:', validationErrors);
+          return;
+        }
+      }
+
       const suppliersData = this.supplierForms.controls.suppliers.getRawValue();
-  
-      // Transform suppliersData to replace 'undefined' with 'null'
+
       const cleanedSuppliersData = suppliersData
-        .filter((supplier: any) => supplier.supplierNo) // Filter out suppliers with no supplierNo
+        .filter((supplier: any) => supplier.supplierNo)
         .map((supplier: any) => ({
           supplierNo: supplier.supplierNo ?? null,
           packageName: supplier.packageName ?? null,
@@ -356,73 +429,84 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
           product: supplier.product ?? null,
           startDate: supplier.startDate ?? null,
           endDate: supplier.endDate ?? null,
-          containers: supplier.containers ?? [] // Assuming containers array is already handled
+          containers: supplier.containers ?? [],
         }));
-  
-      // Ensure that orderId is defined
+
       if (!this.orderId) {
-        return; // Exit if orderId is undefined
+        console.error("Order ID is undefined!");
+        return; 
       }
-  
-      // Fetch the existing order data based on the order number
-      this._TransportService.getOrderById(this.orderId).subscribe({
-        next: (existingOrder) => {
-          // Update the existing order with the supplier data
-          existingOrder.suppliers = existingOrder.suppliers || []; // Initialize if not present
-          if(!this.assignContainerForm){
-          existingOrder.suppliers.push(...cleanedSuppliersData); // Add new suppliers
-          }
 
-          if (this.assignContainerForm) {
-            const containerData = this.supplierForms.controls.suppliers.value;
-          
-            // Loop through each container group (nested arrays)
-            containerData.forEach((containerGroup: any) => {
-              const containers = containerGroup.containers; // Get the nested containers array
-          
-              // Loop through each container in the group
-              containers.forEach((container: any) => {
-                const supplierId = container.sid;
-                
-                // Find matching supplier by supplierNo
-                const matchingSupplier = existingOrder.suppliers?.find(
-                  (supplier: any) => String(supplier.supplierNo) === String(supplierId)
-                );
-                
-                if (matchingSupplier) {
-          
-                  // Initialize containers array if not present and add the container
-                  matchingSupplier.containers = matchingSupplier.containers || [];
-                  matchingSupplier.containers.push(container); 
-                } else {
-                  console.error(`No matching supplier found for supplierNo: ${supplierId}`);
-                }
-              });
-            });
-          }
+      const statusToUpdate = this.assignContainerForm ? OrderStatus.Ordered : OrderStatus.Assigned;
 
-          this._TransportService.updateOrder(this.orderId, existingOrder).subscribe({
-            next: () => {
-              this.dialogRef.close();
-  
-              this.supplierForms.reset();
-              if (this.assignContainerForm) {
-                this.containerForm.reset();
+      this._TransportService.updateOrderStatus(this.orderId, { status: statusToUpdate }).subscribe({
+        next: () => {
+          this._TransportService.getOrderById(this.orderId).subscribe({
+            next: (existingOrder) => {
+
+              // Update the existing order with the supplier data
+              existingOrder.suppliers = existingOrder.suppliers || []; // Initialize if not present
+              if (!this.assignContainerForm) {
+                existingOrder.suppliers.push(...cleanedSuppliersData); // Add new suppliers
+              } else {
+                // Process container data for assignContainerForm
+                const containerData = this.supplierForms.controls.suppliers.value;
+
+                // Loop through each container group (nested arrays)
+                containerData.forEach((containerGroup: any) => {
+                  const containers = containerGroup.containers; // Get the nested containers array
+
+                  // Loop through each container in the group
+                  containers.forEach((container: any) => {
+                    const supplierId = container.sid;
+
+                    // Find matching supplier by supplierNo
+                    const matchingSupplier = existingOrder.suppliers?.find(
+                      (supplier: any) => String(supplier.supplierNo) === String(supplierId)
+                    );
+
+                    if (matchingSupplier) {
+                      // Initialize containers array if not present and add the container
+                      matchingSupplier.containers = matchingSupplier.containers || [];
+                      matchingSupplier.containers.push(container);
+                      this._toasterService.toasterSuccess("Status updated");
+                    } else {
+                      console.error(`No matching supplier found for supplierNo: ${supplierId}`);
+                    }
+                  });
+                });
               }
+
+              // Step 3: Update the order with the modified data
+              this._TransportService.updateOrder(this.orderId, existingOrder).subscribe({
+                next: () => {
+                  this.dialogRef.close();
+
+                  // Reset forms
+                  this.supplierForms.reset();
+                  if (this.assignContainerForm) {
+                    this.containerForm.reset();
+                  }
+                },
+                error: (err) => {
+                  console.error("Error updating order:", err);
+                },
+              });
             },
             error: (err) => {
-              console.error('Error updating order:', err);
-            }
+              console.error("Error fetching existing order:", err);
+            },
           });
         },
         error: (err) => {
-          console.error('Error fetching existing order:', err);
-        }
+          console.error("Error updating status:", err);
+          this._toasterService.toasterError("Some error occurred");
+        },
       });
     } else {
-      console.error('Forms are invalid:', {
+      console.error("Forms are invalid:", {
         suppliers: this.supplierForms.errors,
-        containers: this.containerForm.errors
+        containers: this.containerForm.errors,
       });
     }
   }
@@ -485,4 +569,29 @@ private addContainersForSupplier(quantity: string | null, supplierForm: FormGrou
     return isValid;
   }
 
+  public copySupplierForm(id: number): void {
+    // Retrieve the existing form value
+    const copyFile = (this.supplierForms.controls['suppliers'] as FormArray).at(id).value;
+  
+    // Create a new supplier form initialized with the copied value
+    const copiedFormGroup = new FormGroup<SupplierFrom>({
+      supplierNo: new FormControl<string | null>(copyFile.supplierNo, [Validators.required, Validators.pattern('^[a-zA-Z0-9]+$')]),
+      packageName: new FormControl<string | null>(copyFile.packageName, [Validators.required, Validators.pattern('^[a-zA-Z]+$')]),
+      quantity: new FormControl<string | null>(copyFile.quantity, [Validators.required, Validators.min(1)]),
+      product: new FormControl<string | null>(copyFile.product, [Validators.required]),
+      releasePort: new FormControl<string | null>(copyFile.releasePort, [Validators.required, Validators.pattern('^[A-Z]+$')]),
+      returnPort: new FormControl<string | null>(copyFile.returnPort, [Validators.required, Validators.pattern('^[A-Z]+$')]),
+      startDate: new FormControl<Date | null>(copyFile.startDate, [Validators.required]),
+      endDate: new FormControl<string | null>(copyFile.endDate, [Validators.required]),
+      containers: new FormArray<FormGroup<ContainerForm>>(
+        copyFile.containers || [], 
+        this.uniqueContainerIdsValidatior() 
+      )
+    });
+  
+    // Push the copied form group into the suppliers FormArray
+    (this.supplierForms.controls['suppliers'] as FormArray).push(copiedFormGroup);
+
+  }
+  
 }

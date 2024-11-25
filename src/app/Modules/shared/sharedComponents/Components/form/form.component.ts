@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
-import { CRComparisionValue, CRStatus, OrderForm, Products, TransportFormGroup, TransportFormType } from '../../../../transport/Constants/constants'
+import { CRComparisionValue, CRStatus, OrderForm, Products, SupplierFormType, TransportFormGroup, TransportFormType } from '../../../../transport/Constants/constants'
 import { TransportFormService } from '../../../../transport/Services/transport-form.service';
 import { ActivatedRoute } from '@angular/router';
 import { toasterService } from '../../../../transport/Services/toaster.service';
@@ -12,6 +12,7 @@ import { DataSharingService } from '../../Services/crService';
 import { SaveBtnService } from '../../Services/saveBtn.service';
 import { DateTime } from 'luxon';
 import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-form',
@@ -33,19 +34,19 @@ export class FormComponent {
   public isEdit: boolean = false;
   public status!: string | null;
   public showButtons!: boolean;
+  public orderId?: string|null;
   public showSaveBtn: boolean = false;
   public OrderStatus = OrderStatus;
   public extraValue!: boolean;
   public formmattedEndDate!: string;
   public closeSaveBtn!: boolean;
   public initialFormValue!: CRComparisionValue;
+  public preservedValue?:  SupplierFormType[];
 
   constructor(private saveBtnService: SaveBtnService, private dataSharingService: DataSharingService, private _transportService: TransportFormService, private activatedRoute: ActivatedRoute,
     private _toasterservice: toasterService, private _changeRequest: ChangeRequestService, private dialog: MatDialog, private router: Router
   ) {
     this.extraValue = this.dataSharingService.getSharedData();
-    // this.showSaveBtn = this.saveBtnService.getSharedData().sharedData;
-    this.isEdit = this.saveBtnService.getSharedData().isEdit;
     this.initializeForm();
     this.initialFormValue = this.transportForm.getRawValue();
     const product = new Products();
@@ -67,29 +68,11 @@ export class FormComponent {
 
     this.activatedRoute.parent?.data.subscribe(data => {
       this.showButtons = data['moduleType'];
-      console.log('Module Type:', this.showButtons); // Will log 'admin' or 'client'
-
-      // Now you can customize the component behavior based on the module type
-      if (this.showButtons === true) {
-        // Admin-specific logic
-        console.log('if true then its admin');
-      } else if (this.showButtons === false) {
-        // Client-specific logic
-        console.log('if false then its client');
-      }
     });
   }
 
   get transportArrayFn(): FormArray {
     return this.transportForm.controls.transportArray;
-  }
-
-  public getDataFromCR(): void {
-    this._transportService.getCRById(this.paramId).subscribe({
-      next: (data: TransportFormType) => {
-
-      }
-    })
   }
 
 
@@ -119,7 +102,8 @@ export class FormComponent {
       this._transportService.getCRById(this.paramId).subscribe({
         next: (data: TransportFormType) => {
           this.status = data.status;
-          console.log('data from the CR', data);
+          this.orderId = data.orderId;
+          this.getDataFromOrderId(this.orderId);
           // Patch the non-array fields directly
           this.transportForm.patchValue({
             orderNo: data.orderNo,
@@ -139,7 +123,7 @@ export class FormComponent {
           this.setFormArray(transportArray, data.transportArray, this.createTrasnsportArrayGroup);
         },
         error: (err: string) => {
-          console.log(err);
+          this._toasterservice.toasterError("Some Error Occured line 125");
         }
       });
     } else {
@@ -147,8 +131,6 @@ export class FormComponent {
       this._transportService.getOrderById(this.paramId).subscribe({
         next: (data: TransportFormType) => {
           this.status = data.status;
-
-          console.log('status', this.status);
           // Patch the non-array fields directly
           this.transportForm.patchValue({
             orderNo: data.orderNo,
@@ -168,7 +150,7 @@ export class FormComponent {
           this.setFormArray(transportArray, data.transportArray, this.createTrasnsportArrayGroup);
         },
         error: (err: string) => {
-          console.log(err);
+          this._toasterservice.toasterError("Some Error Occured line 152");
         }
       });
     }
@@ -187,13 +169,40 @@ export class FormComponent {
     });
   }
 
+  public getDataFromOrderId(id?: string|null): void{
+    this._transportService.getOrderById(id).subscribe({
+      next: (data)=>{
+        this.preservedValue = data.suppliers;
+      },
+      error: ()=>{
+        console.error('Data with order id is not found');
+      }
+    })
+  }
+
   public onSubmit(): void {
     if (this.transportForm.invalid) {
       this._toasterservice.toasterWarning('Form is Invalid');
-      alert('Form is not Valid');
       return;
     }
     if (this.transportForm.valid) {
+      if(this.status == OrderStatus.Cancel){
+        this._transportService.updateOrderStatus(this.paramId, {status: OrderStatus.Active}).subscribe({
+          next: ()=>{
+            this._toasterservice.toasterSuccess('Status updated successfully');
+            if(this.showButtons){
+            this.router.navigateByUrl('/admin')
+            }
+            else{
+              this.router.navigateByUrl('/client')
+            }
+          },
+          error: ()=>{
+            this._toasterservice.toasterWarning('Error while updating the status');
+          }
+        })
+        return;
+      }
       this.calculateEndDate();
 
       const startDateControl = this.transportForm.controls.startDate?.value;
@@ -205,7 +214,7 @@ export class FormComponent {
       } else if (startDateControl instanceof Date) {
         startDate = startDateControl;
       } else {
-        console.error('Invalid startDate:', startDateControl);
+        this._toasterservice.toasterInfo('Invalid StarDate');
         return; // Exit early if startDate is invalid
       }
 
@@ -234,7 +243,8 @@ export class FormComponent {
           destination: item.destination,
           product: item.product,
           quantity: item.quantity
-        }))
+        })),
+        suppliers: this.preservedValue || [] 
       };
       const productsInForm = orderFormData.product;
       const transportedProducts = orderFormData.transportArray.filter(item => item.destination === orderFormData.destination);
@@ -251,24 +261,24 @@ export class FormComponent {
 
       // Show error if not all products and quantities are matched
       if (!hasAllProductsAndQuantities) {
-        alert('Error: Destination has not received all products or quantities.');
+        this._toasterservice.toasterWarning('Error: Destination has not received all products or quantities.')
         return;
       }
 
       if (this.isEdit) {
-        this._transportService.updateOrder(this.paramId, orderFormData).subscribe({
+        const orderId = this.orderId ? this.orderId : this.paramId;
+        this._transportService.updateOrder(orderId, orderFormData).subscribe({
           next: () => {
             if (this.extraValue) {
               this._transportService.updateOrderStatusCR(this.paramId, { crStatus: CRStatus.Approved }).subscribe({
                 next: () => {
-                  alert('Data Updated Successfully');
-                  this._toasterservice.toasterSuccess('Updated successfully');
-                  // this.resetForm();
+                  this._toasterservice.toasterSuccess('Status Updated successfully');
+                  this.dataSharingService.setSharedData(false);
+                  this.router.navigateByUrl('/admin');
                 }
               })
             }
             else {
-              alert('Data Updated Successfully');
               this._toasterservice.toasterSuccess('Updated successfully');
               if (this.showButtons) {
                 this.router.navigateByUrl('/admin');
@@ -280,7 +290,7 @@ export class FormComponent {
             }
           },
           error: (err: string) => {
-            this._toasterservice.toasterError('Error while updating data');
+            this._toasterservice.toasterError('Error while updating data line 283');
           }
         })
       }
@@ -288,7 +298,6 @@ export class FormComponent {
         this._transportService.addInOrderForm(orderFormData).subscribe(
           response => {
             this._toasterservice.toasterSuccess('Data saved successfully');
-            alert('Data saved successfully.');
             if (this.showButtons) {
               this.router.navigateByUrl('/admin');
             }
@@ -299,14 +308,13 @@ export class FormComponent {
 
           },
           error => {
-            this._toasterservice.toasterError('Error while Saving Data');
-            console.error('Error saving data:', error);
+            this._toasterservice.toasterError('Error while Saving Data line 302');
           }
         );
       }
     }
     else {
-      alert('Form is invalid');
+      this._toasterservice.toasterInfo('Form is invalid');
     }
   }
 
@@ -369,12 +377,7 @@ export class FormComponent {
         // Push new form group to the array
         const transportArr = this.transportArrayFn;
         transportArr.push(newTransportArr);
-
-        console.log(this.transportForm.controls.transportArray.value);
-        // this.checkDestinationQty();
       } else {
-        // console.log('form value', this.transportForm.controls['transportArray'].value);
-        // console.log('Form is invalid');
         this.transportForm.controls.transportArray.markAllAsTouched();
       }
     }
@@ -421,11 +424,9 @@ export class FormComponent {
         // Update the endDate control with the formatted date string
         this.transportForm.controls.endDate?.setValue(endDate);
       } else {
-        console.log('Invalid startDate:', this.transportForm.controls.endDate!.value);
         this.transportForm.controls.endDate?.setValue(null); // Clear end date if invalid startDate
       }
     } else {
-      console.log('Missing inputs for startDate or dayEstimation:', this.transportForm.controls.endDate!.value);
       this.transportForm.controls.endDate?.setValue(null); // Clear if no valid inputs
     }
   }
@@ -493,19 +494,18 @@ export class FormComponent {
     }
 
     if (origin && !origin.value) {
-      // console.log('Origin is required');
+      
       origin.setErrors({ originRequired: 'Origin is required' });
     }
 
     if (destination && !destination.value) {
-      // console.log('Destination is required');
+      
       destination.setErrors({ destinationRequired: 'Destination is required' });
     }
 
     // Start and end date validation
     if (startDate && endDate) {
       if (!startDate.value) {
-        // console.log('Start Date is required');
         startDate.setErrors({ startDateValidations: 'Start Date is required' });
         hasErrors = true;
       } else {
@@ -513,7 +513,6 @@ export class FormComponent {
       }
 
       if (startDate.value && !endDate.value) {
-        // console.log('End Date is required');
         endDate.setErrors({ endDateValidations: 'End Date is required' });
         hasErrors = true;
       } else {
@@ -530,7 +529,6 @@ export class FormComponent {
 
           // Validate transport date
           if (transportDate?.touched) {
-            // console.log('Transport dates is required');
             transportDate?.setErrors({ DateValidators: 'Transport dates is required' });
           }
           if (transportDate && transportDate.value) {
@@ -671,7 +669,7 @@ export class FormComponent {
       next: () => {
         this.initializeEditForm();
         this._toasterservice.toasterSuccess('Status Updated Successfully');
-        alert('Published successfully');
+        this.router.navigateByUrl('/client/');
       },
       error: () => {
         // Handle error when updating the order status
@@ -680,25 +678,47 @@ export class FormComponent {
     });
   }
 
+  public cancelOrder(newStatus: string|null): void{
+    if (newStatus && this.transportForm.valid) {
+  
+      // Handle status change to "Closed"
+      if (newStatus === OrderStatus.Cancel) {
+        this.openConfirmationDialog('Are you sure you want to change the status?')
+          .subscribe(result => {
+            if (result) {
+              this.updateStatus(newStatus);
+              if(this.showButtons){
+                this.router.navigateByUrl('/admin')
+              }
+              else{
+              this.router.navigateByUrl('/client')
+              }
+            } else {
+              this._toasterservice.toasterInfo("Some error occured while updation");
+            }
+          });
+        }
+      }
+      else{
+        this._toasterservice.toasterInfo("Form is not valid ");
+      }
+  }
+
   public changeRequest(newStatus: string | null): void {
     // Check if the form is valid
     if (!this.transportForm.valid) {
-      console.log('Form value:', this.transportForm.value);
-      console.error('Invalid form');
       this._toasterservice.toasterWarning('The form is not valid.');
       return;
     }
   
     // Check if no changes were made to the form
     if (this.transportForm.pristine || this.isFormUnchanged()) {
-      alert('No changes made');
       this._toasterservice.toasterWarning('No changes were made to the form.');
       return; // Exit if no changes
     }
   
     // Check if newStatus is provided
     if (newStatus) {
-      console.log('Current status:', newStatus);
   
       // Handle status change to "Closed"
       if (newStatus === OrderStatus.Cancel) {
@@ -707,18 +727,15 @@ export class FormComponent {
             if (result) {
               this.updateStatus(newStatus);
             } else {
-              console.log('Status update cancelled');
+              this._toasterservice.toasterInfo("Some error occured while updation");
             }
           });
       } else if (this.status !== OrderStatus.Draft) {
-        // Proceed with Change Request if status is not "Draft"
-        console.log(this.transportForm.value);
-  
         const formValue = {
           ...this.transportForm.getRawValue(),
-          id: this.paramId,
           status: this.status,
-          crStatus: 'pending',
+          orderId: this.paramId,
+          crStatus: CRStatus.Pending,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -739,7 +756,7 @@ export class FormComponent {
           });
   
           if (!hasAllProductsAndQuantities) {
-            alert('Error: Destination has not received all products or quantities.');
+            this._toasterservice.toasterWarning('Error: Destination has not received all products or quantities.')
             return;
           }
   
@@ -748,12 +765,10 @@ export class FormComponent {
           this.router.navigateByUrl('/client');
           // this._toasterservice.toasterSuccess('Change Request Generated');
         } else {
-          alert('Error: Status is new, CR cannot be generated.');
-          this._toasterservice.toasterWarning('Some error occurred.');
+          this._toasterservice.toasterWarning('Error: Status is new, CR cannot be generated.');
         }
       }
     } else {
-      console.log('No new status provided');
       this._toasterservice.toasterWarning('No new status provided.');
     }
   }
@@ -778,12 +793,10 @@ export class FormComponent {
     this._transportService.updateOrderStatus(this.paramId, { status: newStatus }).subscribe({
       next: () => {
         this._toasterservice.toasterSuccess('Status Updated successfully');
-        alert('Status Updated Successfully');
         this.getTransportByID(); // Refresh data after successful update
       },
       error: () => {
         this._toasterservice.toasterWarning('Something went wrong');
-        alert('Something went wrong');
       }
     });
   }

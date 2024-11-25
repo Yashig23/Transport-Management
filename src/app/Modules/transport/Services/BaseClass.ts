@@ -48,22 +48,13 @@ export class BaseService {
         return this._httpClient.put<RType>(this.defaultEndpoint + url, payload);
     }
 
-    // PATCH method
-    // public patchDataSubscription<RType, DType>(url: string, payload: DType): Observable<RType> {
-    //     this.setLoading(true);
-    //     return this._httpClient.patch<RType>(this.defaultEndpoint + url, payload);
-    // }
-
     public patchDataSubscription<RType, DType>(url: string, payload: DType): Observable<RType> {
         this.setLoading(true);
         const finalUrl = this.defaultEndpoint + url;
-        console.log(finalUrl);  // Log the final URL for debugging
     
         return this._httpClient.patch<RType>(finalUrl, payload);
     }
     
-
-
     // DELETE method
     public deleteDataSubscription<RType>(url: string): Observable<RType> {
         this.setLoading(true);

@@ -15,15 +15,22 @@
                 </div>
             </div>
 
-            <div class="section">
+              <div class="section">
                 <h3 class="text-xl font-normal text-gray-800">Current</h3>
                 <div *ngFor="let field of fields">
-                  <div *ngIf="changesDetected[field]"
-                    class="bg-green-300 py-4 px-3 m-2 rounded-md flex justify-center text-lg text-white">
-                    <!-- Handle if the value is an object -->
-                    <ng-container *ngIf="isObject(originalValues[field]); else primitiveOriginal">
-                      {{ originalValues[field]?.productName }} - {{ originalValues[field]?.quantity }}
+                  <div *ngIf="changesDetected[field]" class="bg-green-300 py-4 px-3 m-2 rounded-md flex flex-col items-center text-lg text-white">
+                    <!-- Handle if the value is an array of objects -->
+                    <ng-container *ngIf="isArray(originalValues[field]); else singleOriginalObject">
+                      <div *ngFor="let item of originalValues[field]" class="mb-2">
+                        {{ item.productName }} - {{ item.quantity }}
+                      </div>
                     </ng-container>
+                    <ng-template #singleOriginalObject>
+                      <!-- Single object -->
+                      <div *ngIf="isObject(originalValues[field]); else primitiveOriginal">
+                        {{ originalValues[field]?.productName }} - {{ originalValues[field]?.quantity }}
+                      </div>
+                    </ng-template>
                     <ng-template #primitiveOriginal>
                       {{ originalValues[field] }}
                     </ng-template>
@@ -34,18 +41,26 @@
               <div class="section">
                 <h3 class="text-xl font-normal text-gray-800">Requested</h3>
                 <div *ngFor="let field of fields">
-                  <div *ngIf="changesDetected[field]"
-                    class="bg-red-300 py-4 px-3 m-2 rounded-md flex justify-center text-lg text-white">
-                    <!-- Handle if the value is an object -->
-                    <ng-container *ngIf="isObject(changedValues[field]); else primitiveChanged">
-                      {{ changedValues[field]?.productName }} - {{ changedValues[field]?.quantity }}
+                  <div *ngIf="changesDetected[field]" class="bg-red-300 py-4 px-3 m-2 rounded-md flex flex-col items-center text-lg text-white">
+                    <!-- Handle if the value is an array of objects -->
+                    <ng-container *ngIf="isArray(changedValues[field]); else singleChangedObject">
+                      <div *ngFor="let item of changedValues[field]" class="mb-2">
+                        {{ item.productName }} - {{ item.quantity }}
+                      </div>
                     </ng-container>
+                    <ng-template #singleChangedObject>
+                      <!-- Single object -->
+                      <div *ngIf="isObject(changedValues[field]); else primitiveChanged">
+                        {{ changedValues[field]?.productName }} - {{ changedValues[field]?.quantity }}
+                      </div>
+                    </ng-template>
                     <ng-template #primitiveChanged>
                       {{ changedValues[field] }}
                     </ng-template>
                   </div>
                 </div>
-              </div>
+              </div>              
+              
               
         </div>
         <div class="m-2" *ngIf="showButtons && isSelected">
@@ -61,17 +76,13 @@
     </div>
     <div class="flex justify-end" *ngIf="isSelected">
         <div class="m-1" *ngIf="showButtons && status != CRStatus.Approved">
-            <!-- <div class="m-1" > -->
             <button class="px-3 py-2 bg-orange-700 text-white m-1 rounded-md" (click)="setDataAndNavigate()">Accept</button>
         </div>
         <div class="m-1" *ngIf="showButtons  && status != CRStatus.Rejected">
-            <!-- <div class="m-1" > -->
-            <!-- <button (click)="changeStatus(OrderStatus.)">Reject</button> -->
             <button class="px-3 py-2 bg-gray-700 text-white m-1 rounded-md" (click)="changeStatusCR()">Reject</button>
         </div>
-        <div class="m-1" >
-            <!-- <button (click)="changeStatus(OrderStatus.)">Reject</button> -->
-            <button mat-button [mat-dialog-close]="true"  class="px-3 py-2 bg-gray-700 text-white m-1 rounded-md">Close</button>
-        </div>
     </div>
+    <div class="m-1" >
+      <button mat-button [mat-dialog-close]="true"  class="px-3 py-2 bg-gray-700 text-white m-1 rounded-md">Close</button>
+  </div>
 </section>

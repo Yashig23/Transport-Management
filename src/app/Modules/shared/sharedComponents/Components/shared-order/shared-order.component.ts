@@ -13,6 +13,7 @@ import { ChangeRequestService } from '../../../../transport/Services/ChangeReque
 import { OrderStatus } from '../../../../transport/Constants/constants';
 import { ActivatedRoute } from '@angular/router';
 import { SaveBtnService } from '../../Services/saveBtn.service';
+import { CopyDialogComponent } from '../../copy-dialog/copy-dialog.component';
 
 @Component({
   selector: 'app-shared-order',
@@ -41,7 +42,6 @@ export class SharedOrderComponent {
   ) { }
 
   ngOnInit(): void {
-    console.log('showassignBtn', this.showAssignedContainer);
 
     // Fetch the orders from db.json
     this.orderData();
@@ -49,17 +49,6 @@ export class SharedOrderComponent {
     // Access the metadata (moduleType) from the route
     this._router.parent?.data.subscribe(data => {
       this.showButtons = data['moduleType'];
-      console.log('Module Type:', this.showButtons); // Will log 'admin' or 'client'
-      
-      // Now you can customize the component behavior based on the module type
-      if (this.showButtons === true) {
-        // Admin-specific logic
-        console.log('if true then admin section');
-
-      } else if (this.showButtons === false) {
-        // Client-specific logic
-        console.log('if false then client section');
-      }
     });
   }
 
@@ -86,7 +75,6 @@ export class SharedOrderComponent {
         }
       },
       error: (err) => {
-        console.error('Error fetching orders:', err);
         this.showMessage = true;
         this.message = 'Error loading data';
       }
@@ -96,22 +84,21 @@ export class SharedOrderComponent {
   public editProduct(id?: number) {
     if (id) {
       // Navigate to the route with the given order ID as a route parameter
-      console.log('Navigating to:', `/transport/edit/${id}`);
       this.router.navigate(['transport/edit', id]);
 
     } else {
-      console.error('No product ID provided');
+      this._toasterService.toasterWarning('No Id provided');
     }
   }
 
   public hasContainers(order: OrderFormType): boolean {
     const containers = order.suppliers?.some(supplier => supplier.containers && supplier.containers.length > 0);
-    // console.log('containers', containers);
+  
     return order.suppliers?.some(supplier => supplier.containers && supplier.containers.length > 0) || false;
   }
 
   public addProduct(id: number): void {
-    // console.log('clicked')
+   
     let supplierData: OrderFormType;
 
     // Check if 'order' exists and the index is within bounds
@@ -143,9 +130,7 @@ export class SharedOrderComponent {
     });
   }
 
-  public viewProduct(id: number): void {
-    console.log("view");
-  }
+
 
   public assignContainer(id: number): void {
     let supplierData: OrderFormType;
@@ -177,17 +162,6 @@ export class SharedOrderComponent {
       this.orderData();
     })
   }
-
-  // public changeRequest(status?: string | null, paramId?: string | null): void {
-  //   if (paramId && status !== OrderStatus.New) {
-  //     this._changeRequest.changeStatus(OrderStatus.ChangeRequest, paramId);
-  //     this.orderData();
-  //   }
-  //   else{
-  //     this._toasterService.toasterWarning('Status of object is new');
-  //     alert('')
-  //   }
-  // }
   
 
   public onSearch(event: Event): void {
@@ -225,5 +199,10 @@ export class SharedOrderComponent {
     this.toast.success('updated');
   }
   
+
+  public openCopyDialog(id: string): void{
+     const Dialog = this.dialog.open(CopyDialogComponent);
+     Dialog.componentInstance.fieldId = id
+  }
 
 }

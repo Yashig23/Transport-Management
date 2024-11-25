@@ -135,6 +135,7 @@ export interface TransportFormType{
   transportArray: TransportDetailsType[];
   status: string|null;
   crStatus?: CRStatus;
+  orderId?: string|null;
   suppliers?: SupplierFormType[];
 }
 
@@ -155,11 +156,10 @@ export interface TransportDetailsType {
 
 export enum OrderStatus {
   Draft = 'draft',
-  New = 'new',
+  Published = 'published',
   Error = 'error',
   Assigned = 'assigned',
   Ordered = 'ordered',
-  ChangeRequest = 'changeRequest',
   Active = 'active',
   Closed = 'closed',
   Cancel = 'cancel'
@@ -181,10 +181,12 @@ export interface TransportDetails {
   quantity?: string | null;
 }
 
-// Define CRFormValue interface (no changes needed except fixing transportArray typing)
+// Define CRFormValue interface (no changes needed except fixing tranortArray typing)
 export interface CRFormValue {
+  id?: string|null;
   crStatus: string | null; // Required field: crStatus
   orderNo?: string | null; // Optional field: orderNo
+  orderId?: string|null;
   origin?: string | null; // Optional field: origin
   createdAt?: string|null;
   updatedAt?: string|null;

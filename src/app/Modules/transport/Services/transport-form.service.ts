@@ -33,25 +33,6 @@ export class TransportFormService extends BaseService {
   getCRById(orderId?: string | null): Observable<TransportFormType> {
     return this.getDataSubscription<TransportFormType>(`${this.apiUrlCR}/${orderId}`);
   }
-
-  // getCRByOrderNo(orderNo?: string | null): Observable<CRFormValue[]> {
-  //   return this.getDataSubscription<CRFormValue[]>(`${this.apiUrlCR}?orderNo=${orderNo}`);
-  // }  
-
-  // public getCRByOrderNo(orderNo?: string | null): Observable<CRFormValue[]> {
-  //   return this.getDataSubscription<CRFormValue[]>(`${this.apiUrlCR}`)
-  //     .pipe(
-  //       map((data: CRFormValue[]) => {
-  //         // Filter the data based on the orderNo
-  //         if (orderNo) {
-  //           console.log('orderNo', orderNo);
-  //           console.log('filtered data',  data.filter(item => item.orderNo === orderNo))
-  //           return data.filter(item => item.orderNo === orderNo);
-  //         }
-  //         return []; // Return empty array if orderNo is not found
-  //       })
-  //     );
-  // }
   
 
   updateOrder(orderId?: string | null, orderData?: TransportFormType): Observable<TransportFormType> {
@@ -74,9 +55,13 @@ export class TransportFormService extends BaseService {
     return this.putDataSubscription<string, TransportDetailsType[]>(`/orders/${orderId}/transport`, transportDetails);
   }
 
-  updateOrderStatus(orderId: string | null, updatePayload: { status: string }): Observable<string> {
+  updateOrderStatus(orderId?: string | null, updatePayload?: { status: string }): Observable<string> {
     if (!orderId) {
       throw new Error('Order ID is required');
+    }
+
+    if(!updatePayload){
+      throw new Error('OrderData is missing');
     }
 
     const url = `/order/${orderId}`;

@@ -4,3 +4,11 @@
 @tailwind utilities;
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+
+.toast-custom-position {
+    position: fixed !important;
+    top: 100px !important;  
+    left: 100px !important;  
+    z-index: 9999 !important;  
+}

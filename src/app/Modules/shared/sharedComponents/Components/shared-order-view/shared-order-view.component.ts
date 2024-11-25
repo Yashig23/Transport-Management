@@ -22,19 +22,18 @@ export class SharedOrderViewComponent {
   public containers: ConatinerAssignmentForm[] = [];
   public suppliers: SupplierFormType[] = [];
   public transport: TransportDetailsType[] = [];
-  // public cr: CRFormValue[] = [];
   public cr: TransportFormType[] = [];
   public status!: string | null;
   public currentTab: number = 0;
   public crStatus?: CRStatus;
   public CRStatus = CRStatus;
+  public orderNo!: string|null;
   @Input() showButtons!: boolean;
   @Input() paramId!: string | null;
   public OrderStatus = OrderStatus;
   public displayedColumnsContainer: string[] = ['containerId', 'product'];
-  public displayedColumnsSupplier: string[] = ['supplierNo', 'packageName', 'releasePort', 'returnPort', 'product', 'quantity', 'startDate', 'endDate'];
+  public displayedColumnsSupplier: string[] = ['supplierNo', 'packageName', 'releasePort', 'returnPort', 'product', 'quantity', 'startDate', 'endDate', 'actions'];
   public displayedColumnsTransport: string[] = ['transportId', 'date', 'origin', 'destination', 'product', 'quantity'];
-  // public displayedColumnsChangeRequest: string[] = ['Id', 'createdAt', 'updatedAt', 'origin', 'destination', 'status', 'cr'];
   public displayedColumnsChangeRequest: string[] = ['Id', 'createdAt', 'updatedAt', 'origin', 'destination', 'status', 'cr', 'actions'];
 
   constructor(private activatedRoute: ActivatedRoute, private _transportService: TransportFormService,
@@ -45,29 +44,17 @@ export class SharedOrderViewComponent {
 
     this.activatedRoute.parent?.data.subscribe(data => {
       this.showButtons = data['moduleType'];
-      console.log('Module Type:', this.showButtons); // Will log 'admin' or 'client'
-
-      // Now you can customize the component behavior based on the module type
-      if (this.showButtons === true) {
-        // Admin-specific logic
-        console.log('if true then admin section');
-      } else if (this.showButtons === false) {
-        // Client-specific logic
-        console.log('if false then client section');
-      }
     });
 
   }
 
   public initializeEditForm(): void {
     this.activatedRoute.paramMap.subscribe(paramMap => {
-      // console.log(paramMap);
       this.paramId = (paramMap.get('id'));
       if (this.paramId) {
         this.isEdit = true;
         this.getTransportByID();
-        // this.getCRByOrderNo();
-        this.getAllCRById();
+        
       }
     });
   }
@@ -77,12 +64,18 @@ export class SharedOrderViewComponent {
       next: (data: TransportFormType) => {
         this.transportViewForm = data;
         this.status = data.status;
-        // console.log('transportViewForm', this.transportViewForm);
+        this.orderNo = data.orderNo;
+        console.log('data', data);
+        console.log('suppliers', this.suppliers);
 
         // Empty the arrays before adding new data
-        this.containers = [];
         this.suppliers = [];
         this.transport = [];
+        this.containers = [];
+     
+        // this.cr = [];
+
+        this.getAllCRById();
 
         // Process suppliers and containers
         if (this.transportViewForm.suppliers) {
@@ -105,34 +98,37 @@ export class SharedOrderViewComponent {
     });
   }
 
-  // public getCRById(): void {
-  //   this._transportService.getCRById(this.paramId).subscribe({
-  //     next: (data: TransportFormType) => {
-  //       if(data != undefined){
-  //         console.log('data form crArray', data);
-  //       this.crStatus = data.crStatus;
-  //       this.cr = [data];  // Ensure that data is assigned correctly
-  //       console.log('cr value', this.cr);
-  //       }
-  //     },
-  //     error: (error) => {
-  //       console.error('Error fetching change request data:', error);
-  //     }
-  //   });
-  // }
+  public openSupplierEdit(id: string|null): void{
+    const dialog = this.dialog.open(SupplierDialogComponent,{
+      width: '1900px',
+      height: '700px',
+    });
+    if(id){
+    dialog.componentInstance.orderId = id;
+    }
+    dialog.componentInstance.editForm = true;
+    dialog.afterClosed().subscribe({
+      next: ()=>{
+        this.initializeEditForm();
+      },
+      error: ()=>{
+        this._toaster.toasterWarning('Some Error Occured');
+      }
+    })
+  }
 
   public getAllCRById(): void {
-    const paramId = this.paramId; // Assuming `paramId` is already defined in your component
+    const paramId = this.paramId;
     this._transportService.getAllCROrders().subscribe({
       next: (data: TransportFormType[]) => {
-        // Filter the data array to only include objects where the id matches paramId
-        const matchingCRs = data.filter(cr => cr.id === paramId);
-
-        // Do something with the filtered array (matchingCRs)
-        console.log('Matching CRs:', matchingCRs);
-
-        // Optionally, you can store this in a component property if needed
+      
+        this.cr = [];
+      
+        if(this.orderNo){
+        const matchingCRs = data.filter(cr => cr.orderNo === this.orderNo);
         this.cr = matchingCRs;
+        console.log('cr', this.cr);
+        }
       },
       error: (err) => {
         console.error('Error fetching CRs:', err);
@@ -150,7 +146,7 @@ export class SharedOrderViewComponent {
   }
 
   public changeRequest(paramId: string | null): void {
-    if (this.status != OrderStatus.New) {
+    if (this.status != OrderStatus.Published) {
       // this._changeRequest.changeStatus(OrderStatus.New, paramId);
     }
     else {
@@ -159,29 +155,27 @@ export class SharedOrderViewComponent {
   }
 
   public openCRView(data: CRFormValue): void {
-    console.log('data', data);
     const dialogRef = this.dialog.open(CRViewComponent, {
-      width: '1400px',
-      height: '500px',
+      width: '1900px',
+      height: '400px',
+      disableClose: true,
     });
-
 
     dialogRef.componentInstance.showButtons = this.showButtons;
     dialogRef.componentInstance.originalData = this.transportViewForm;
     dialogRef.componentInstance.changedData = data;
     dialogRef.componentInstance.status = data.crStatus;
     dialogRef.componentInstance.paramId = this.paramId;
+    dialogRef.componentInstance.crId = data.id;
+    dialogRef.componentInstance.orderId = data.orderId;
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         this.initializeEditForm();
-        console.log('result', result);
-      }
-      else {
-        console.log('No result found');
       }
     })
   }
+  
 
   getProductDisplayValue(): string {
     if (!this.transportViewForm.product || !this.transportViewForm.product.length) {
@@ -206,24 +200,21 @@ export class SharedOrderViewComponent {
         this._transportService.updateOrderStatus(this.paramId, { status: data }).subscribe({
           next: () => {
             this._toaster.toasterSuccess('Status Updated successfully');
-            alert('Status Updated Successfully');
             this.getTransportByID();  // Fetch the updated data
           },
           error: () => {
             this._toaster.toasterWarning('Something went wrong');
-            alert('Something went wrong');
           }
         });
       } else {
         // If the user cancels (clicked "No"), do nothing
-        console.log('Status update cancelled');
+        this._toaster.toasterWarning('Status update cancelled');
       }
     });
   }
 
 
-  public addProduct(id: string | null): void {
-    console.log('clicked')
+  public addSuppliers(id: string | null): void {
     let supplierData: OrderFormType;
 
     // Open the dialog with valid data
@@ -246,6 +237,7 @@ export class SharedOrderViewComponent {
     // Use 'afterClosed()' to handle dialog close event
     dialogRef.afterClosed().subscribe((result: any) => {
       this.getTransportByID();
+      // this.changeStatus(OrderStatus.Assigned);
       // supplierData.submitted = true;
     });
   }
@@ -273,6 +265,7 @@ export class SharedOrderViewComponent {
 
     dialogRef.afterClosed().subscribe(() => {
       this.getTransportByID();
+      // this.changeStatus(OrderStatus.Ordered);
     })
   }
 }

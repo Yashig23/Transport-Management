@@ -14,3 +14,16 @@
 .mat-mdc-cell{
    font-size: medium;
 }
+
+// <ng-container matColumnDef="actions">
+//           <th mat-header-cell *matHeaderCellDef> Actions </th>
+//           <td mat-cell *matCellDef="let supplier; let index = rowIndex"> 
+//              <!-- View Button (Always Visible) -->
+//           <button mat-raised-button color="primary" *ngIf="index===0"
+//           class="bg-yellow-500 p-4 m-1 rounded-lg hover:bg-yellow-300 text-white"
+//           matTooltip="View Change Request"
+//           (click)="openSupplierEdit(paramId)">
+//           <mat-icon>edit</mat-icon>
+//         </button>  
+//           </td>
+//         </ng-container>

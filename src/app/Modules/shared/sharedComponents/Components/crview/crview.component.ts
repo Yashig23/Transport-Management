@@ -14,26 +14,28 @@ import { DialogBoxComponent } from '../dialog-box/dialog-box.component';
   templateUrl: './crview.component.html',
   styleUrl: './crview.component.scss'
 })
-export class CRViewComponent implements OnInit{
+export class CRViewComponent implements OnInit {
   public originalData!: TransportFormType;
   public changedData!: CRFormValue;
   public changes: { [key: string]: boolean } = {};
   originalValues: any = {};
   changedValues: any = {};
   changesDetected: any = {};
-  public rejectMessage: string ='';
+  public rejectMessage: string = '';
   public OrderStatus = OrderStatus;
   public CRStatus = CRStatus;
-  public paramId!: string|null;
+  public paramId!: string | null;
   public showButtons!: boolean;
   public showMessage!: boolean;
   public Message!: string;
   public isSelected!: boolean;
-  public status!: string|null;
+  public crId?: string | null;
+  public orderId?: string | null;
+  public status!: string | null;
   fields: (keyof TransportFormType)[] = ['orderNo', 'origin', 'product', 'destination', 'startDate', 'endDate', 'dayEstimation'];
 
-  constructor(private cdr: ChangeDetectorRef, private router: Router,private dataSharingService: DataSharingService, private _transportService: TransportFormService,private _router: ActivatedRoute,
-    private dialog: MatDialog, public dialogRef: MatDialogRef<CRViewComponent>, private _toasterService: toasterService){
+  constructor(private cdr: ChangeDetectorRef, private router: Router, private dataSharingService: DataSharingService, private _transportService: TransportFormService, private _router: ActivatedRoute,
+    private dialog: MatDialog, public dialogRef: MatDialogRef<CRViewComponent>, private _toasterService: toasterService) {
 
   }
 
@@ -46,11 +48,7 @@ export class CRViewComponent implements OnInit{
       startDate: this.originalData.startDate,
       endDate: this.originalData.endDate,
       dayEstimation: this.originalData.dayEstimation,
-      transportArray: this.originalData.transportArray 
     };
-
-    // console.log('ori', originalUpdatedData);
-    // console.log('cha', this.changedData);   
 
     this.detectChanges(originalUpdatedData, {
       orderNo: this.changedData.orderNo,
@@ -60,30 +58,33 @@ export class CRViewComponent implements OnInit{
       startDate: this.changedData.startDate,
       endDate: this.changedData.endDate,
       dayEstimation: this.changedData.dayEstimation,
-      transportArray: this.changedData.transportArray 
     });
 
-    this.detectChanges(this.originalData, this.changedData);
+    // this.detectChanges(, this.changedData);
   }
 
   public setDataAndNavigate() {
     // Set the data you want to share
     this.dataSharingService.setSharedData(true);
     this.dialogRef.close();
-    
+
     // Navigate to the target component
-    this.router.navigate(['/admin/transport-form/changeRequest/', this.paramId]);
+    if (this.orderId) {
+      this.router.navigate(['/admin/transport-form/changeRequest/', this.crId]);
+    }
+    else {
+      this._toasterService.toasterWarning('No OrderId Present');
+    }
+    // this.router.navigate(['/admin/transport-form/changeRequest/', this.paramId]);
 
   }
 
   detectChanges(original: any, changed: any): void {
-    console.log('originalDate', original)
-    console.log('changed', changed);
     // Clear previous changes before detecting new ones
     this.originalValues = {};
     this.changedValues = {};
     this.changesDetected = {};
-  
+
     for (let key in original) {
       if (original[key] === undefined || original[key] === null || changed[key] === undefined || changed[key] === null) {
         if (original[key] !== changed[key]) {
@@ -91,15 +92,25 @@ export class CRViewComponent implements OnInit{
         }
         continue;
       }
-  
-      // Handle objects with specific properties like 'productName' and 'quantity'
-      if (typeof original[key] === 'object' && typeof changed[key] === 'object' && original[key] !== null && changed[key] !== null) {
-        if (original[key].productName !== changed[key].productName || original[key].quantity !== changed[key].quantity) {
-          this.storeChange(key, original[key], changed[key]);
+
+      // Check for array case
+      if (Array.isArray(original[key]) && Array.isArray(changed[key])) {
+        for (let i = 0; i < original[key].length; i++) {
+          const originalItem = original[key][i];
+          const changedItem = changed[key][i];
+          if (originalItem.productName !== changedItem.productName || originalItem.quantity !== changedItem.quantity) {
+            this.storeChange(key, original[key], changed[key]);
+            break; // No need to check further once a change is detected.
+          }
         }
         continue;
       }
-  
+
+      // Regular object comparison
+      if (original[key].productName !== changed[key].productName || original[key].quantity !== changed[key].quantity) {
+        this.storeChange(key, original[key], changed[key]);
+      }
+
       // Handle Date comparison separately
       if (original[key] instanceof Date && changed[key] instanceof Date) {
         if (original[key].getTime() !== changed[key].getTime()) {
@@ -107,32 +118,19 @@ export class CRViewComponent implements OnInit{
         }
         continue;
       }
-  
-      // Handle arrays (deep comparison of each element in the array)
-      if (Array.isArray(original[key]) && Array.isArray(changed[key])) {
-        if (original[key].length !== changed[key].length) {
-          this.storeChange(key, original[key], changed[key]);
-          continue;
-        }
-  
-        for (let i = 0; i < original[key].length; i++) {
-          const originalItem = original[key][i];
-          const changedItem = changed[key][i];
-  
-          if (JSON.stringify(originalItem) !== JSON.stringify(changedItem)) {
-            this.storeChange(key, originalItem, changedItem);
-          }
-        }
-        continue;
-      }
-  
+
       // Compare primitive values (strings, numbers, etc.)
       if (original[key] !== changed[key]) {
         this.storeChange(key, original[key], changed[key]);
       }
     }
   }
-  
+
+  isArray(value: any): boolean {
+    return Array.isArray(value);
+  }
+
+
 
   isObject(value: any): boolean {
     return value && typeof value === 'object' && !Array.isArray(value);
@@ -146,37 +144,68 @@ export class CRViewComponent implements OnInit{
   }
 
   public changeStatusCR(): void {
-    // Pass the status as an object with a crStatus key
-    if(this.rejectMessage.trim() == ''){
+    if (this.rejectMessage.trim() == '') {
       this.showMessage = true;
-       this.Message = 'Reject Message Required';
-       return;
+      this.Message = 'Reject Message Required';
+      return;
     }
-    else{
-    const dialogRef = this.dialog.open(DialogBoxComponent, {
-      width: '300px',
-      data: { message: 'Are you sure you want to change the status?' }
-    });
+    else {
+      const dialogRef = this.dialog.open(DialogBoxComponent, {
+        width: '300px',
+        data: { message: 'Are you sure you want to change the status?' }
+      });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        // If the user confirms (clicked "Yes"), proceed with updating the status
-        this._transportService.updateOrderStatusCR(this.paramId, { crStatus: CRStatus.Rejected }).subscribe({
-          next: ()=>{
-            alert('Status updated Successfully');
-            this._toasterService.toasterSuccess('Status updated Successfully');
-          },
-          error: ()=>{
-            alert('Some error occured');
-            this._toasterService.toasterWarning('Some Error Occured');
+      // dialogRef.afterClosed().subscribe(result => {
+      //   if (result) {
+      //     if (this.crId != null) {
+      //       this._transportService.updateOrderStatusCR(this.crId, { crStatus: CRStatus.Rejected }).subscribe({
+      //         next: () => {
+      //           this._toasterService.toasterSuccess('Status updated Successfully');
+      //           dialogRef.close();
+      //         },
+      //         error: () => {
+      //           this._toasterService.toasterWarning('Some Error Occured');
+      //           dialogRef.close();
+      //         }
+      //       });
+      //     } else {
+      //       this._toasterService.toasterWarning('Some Error Occured');
+      //       dialogRef.close();
+      //     }
+      //   }
+      //   else {
+      //     this._toasterService.toasterInfo('Id not present');
+      //   }
+      // });
+      dialogRef.afterClosed().subscribe(result => {
+        if (result && this.rejectMessage) {
+          if (this.crId != null) {
+            // Adding the rejectMessage field explicitly while updating the status
+            const updatePayload = {
+              crStatus: CRStatus.Rejected,
+              rejectMessage: this.rejectMessage 
+            };
+      
+            this._transportService.updateOrderStatusCR(this.crId, updatePayload).subscribe({
+              next: () => {
+                this._toasterService.toasterSuccess('Status updated successfully with Reject Message.');
+                dialogRef.close();
+              },
+              error: () => {
+                this._toasterService.toasterWarning('Some error occurred while updating the status.');
+                dialogRef.close();
+              }
+            });
+          } else {
+            this._toasterService.toasterWarning('CR ID is missing. Unable to update status.');
+            dialogRef.close();
           }
-        });
-      } else {
-        // If the user cancels (clicked "No"), do nothing
-        console.log('Status update cancelled');
-      }
-    });
+        } else {
+          this._toasterService.toasterInfo('Action cancelled. No updates were made.');
+        }
+      });
+      
+    }
   }
-  }
-  
+
 }

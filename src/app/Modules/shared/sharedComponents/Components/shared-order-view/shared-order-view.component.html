@@ -1,4 +1,4 @@
-<div class="flex justify-between">
+<div class="flex justify-between" *ngIf="transportViewForm; else loading">
 
   <div class="border border-orange-200 p-3 flex flex-wrap">
     <!-- General order info section -->
@@ -6,7 +6,7 @@
       <div class="w-full sm:w-1/2 md:w-1/3 p-2">
         <mat-form-field appearance="fill" class="w-full">
           <mat-label>Order No</mat-label>
-          <input matInput [value]="transportViewForm?.orderNo" readonly />
+          <input matInput [value]="transportViewForm.orderNo" readonly />
         </mat-form-field>
       </div>
 
@@ -59,44 +59,53 @@
           <input matInput [value]="getProductDisplayValue()" readonly />
         </mat-form-field>
       </div>
-      
+
     </div>
   </div>
 
   <div class="flex justify-start ">
-    <div>
-      <button [routerLink]="[!showButtons ? '/client/transport-form' : '/admin/transport-form', paramId]" mat-raised-button color="primary"
+    <div *ngIf="(status != OrderStatus.Closed && showButtons)">
+      <button [routerLink]="['/admin/transport-form', paramId]" mat-raised-button color="primary"
         class="bg-blue-500 p-4 m-1 rounded-lg hover:bg-blue-300 text-white" matTooltip="Edit Transport">
         <mat-icon>edit</mat-icon>
       </button>
     </div>
+
     <div>
-      <button (click)="changeStatus(OrderStatus.Cancel)" mat-raised-button color="warn"
-        *ngIf="status != OrderStatus.Cancel && status !=OrderStatus.Draft"
-        class="bg-red-500 p-4 m-1 rounded-lg hover:bg-red-300 text-white" matTooltip="Cancel Order">
+      <button (click)="changeStatus(OrderStatus.Cancel)" mat-raised-button color="warn" *ngIf="(status != OrderStatus.Cancel && status !=OrderStatus.Draft && showButtons && status != OrderStatus.Closed) 
+        || (!showButtons && status != OrderStatus.Draft && status != OrderStatus.Cancel && status != OrderStatus.Assigned && status != OrderStatus.Closed && status != OrderStatus.Ordered)
+        " class="bg-red-500 p-4 m-1 rounded-lg hover:bg-red-300 text-white" matTooltip="Cancel Order">
         <mat-icon>cancel</mat-icon>
       </button>
     </div>
-    <div *ngIf="showButtons == false && status != OrderStatus.Draft">
-      <button class="bg-orange-500 p-4 m-1 rounded-lg hover:bg-orange-300 text-white" 
-      [routerLink]="[showButtons === false ? '/client/transport-form' : '/admin/transport-form', paramId]"
+    <div>
+      <button (click)="changeStatus(OrderStatus.Closed)" mat-raised-button
+        *ngIf="status !=OrderStatus.Draft && showButtons && status != OrderStatus.Closed"
+        class="bg-red-800 p-4 m-1 rounded-lg hover:bg-red-300 text-white" matTooltip="Close Order">
+        <mat-icon>block</mat-icon>
+      </button>
+    </div>
+    <div
+      *ngIf="!showButtons  && status != OrderStatus.Draft  && status != OrderStatus.Closed && status != OrderStatus.Cancel">
+      <button class="bg-orange-500 p-4 m-1 rounded-lg hover:bg-orange-300 text-white"
+        [routerLink]="[!showButtons ? '/client/transport-form' : '/admin/transport-form', paramId]"
         matTooltip="Change Request">
         <mat-icon>change_circle</mat-icon>
       </button>
     </div>
-    <div *ngIf="showButtons == true && status!= OrderStatus.Active">
+    <div *ngIf="showButtons && status== OrderStatus.Published">
       <button class="bg-green-500 p-4 m-1 rounded-lg hover:bg-green-300 text-white"
         (click)="changeStatus(OrderStatus.Active)" matTooltip="Activate Order">
         <mat-icon>check_box</mat-icon>
       </button>
     </div>
-    <div *ngIf="showButtons == true">
-      <button class="bg-pink-500 p-4 m-1 rounded-lg hover:bg-pink-300 text-white" (click)="addProduct(paramId)"
+    <div *ngIf="showButtons && status == OrderStatus.Active && (!suppliers || suppliers.length === 0) ">
+      <button class="bg-pink-500 p-4 m-1 rounded-lg hover:bg-pink-300 text-white" (click)="addSuppliers(paramId)"
         matTooltip="Assign Suppliers">
         <mat-icon>draft_orders</mat-icon>
       </button>
     </div>
-    <div *ngIf="showButtons == true">
+    <div *ngIf="showButtons && status == OrderStatus.Assigned && (!containers || containers.length === 0)">
       <button class="bg-blue-500 p-4 m-1 rounded-lg hover:bg-blue-300 text-white" (click)="assignContainer(paramId)"
         matTooltip="Assign Container">
         <mat-icon>assignment</mat-icon>
@@ -127,6 +136,7 @@
   </mat-tab>
 
   <mat-tab label="Suppliers">
+    <!-- <section class="flex justify-evenly"> -->
     <div *ngIf="currentTab === 1">
       <!-- Table for Suppliers -->
       <table mat-table [dataSource]="suppliers" class="mat-elevation-z8">
@@ -170,10 +180,22 @@
           <td mat-cell *matCellDef="let supplier"> {{ supplier.endDate | date: 'short' }} </td>
         </ng-container>
 
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef> Actions </th>
+          <td mat-cell *matCellDef="let supplier">
+            <!-- View Button (Always Visible) -->
+            <button mat-raised-button color="primary"
+              class="bg-yellow-500 p-4 m-1 rounded-lg hover:bg-yellow-300 text-white" matTooltip="View Change Request"
+              (click)="openSupplierEdit(paramId)">
+              <mat-icon>edit</mat-icon>
+            </button>
+          </td>
+        </ng-container>
         <tr mat-header-row *matHeaderRowDef="displayedColumnsSupplier"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumnsSupplier;"></tr>
       </table>
     </div>
+
   </mat-tab>
 
 
@@ -217,93 +239,103 @@
     </div>
   </mat-tab>
 
-<mat-tab label="Change Request">
-  <div *ngIf="currentTab === 3">
-    <!-- Table for Change Request (OrderFormType) -->
-    <table mat-table [dataSource]="cr" class="mat-elevation-z8">
+  <mat-tab label="Change Request">
+    <div *ngIf="currentTab === 3">
+      <!-- Table for Change Request (OrderFormType) -->
+      <table mat-table [dataSource]="cr" class="mat-elevation-z8">
 
-      <!-- Order Number Column -->
-      <ng-container matColumnDef="Id">
-        <th mat-header-cell *matHeaderCellDef> Id </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.orderNo }} </td>
-      </ng-container>
+        <!-- Order Number Column -->
+        <ng-container matColumnDef="Id">
+          <th mat-header-cell *matHeaderCellDef> Id </th>
+          <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.orderNo }} </td>
+        </ng-container>
 
-      <!-- Created At Column -->
-      <ng-container matColumnDef="createdAt">
-        <th mat-header-cell *matHeaderCellDef> Created At </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.createdAt | date: 'short' }} </td>
-      </ng-container>
+        <!-- Created At Column -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef> Created At </th>
+          <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.createdAt | date: 'short' }} </td>
+        </ng-container>
 
-      <!-- Updated At Column -->
-      <ng-container matColumnDef="updatedAt">
-        <th mat-header-cell *matHeaderCellDef> Updated At </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.updatedAt | date: 'short' }} </td>
-      </ng-container>
+        <!-- Updated At Column -->
+        <ng-container matColumnDef="updatedAt">
+          <th mat-header-cell *matHeaderCellDef> Updated At </th>
+          <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.updatedAt | date: 'short' }} </td>
+        </ng-container>
 
-      <!-- Origin Column -->
-      <ng-container matColumnDef="origin">
-        <th mat-header-cell *matHeaderCellDef> Origin </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.origin }} </td>
-      </ng-container>
+        <!-- Origin Column -->
+        <ng-container matColumnDef="origin">
+          <th mat-header-cell *matHeaderCellDef> Origin </th>
+          <td mat-cell *matCellDef="let changeRequest">
+             {{ changeRequest.origin }} </td>
+        </ng-container>
 
-      <!-- Destination Column -->
-      <ng-container matColumnDef="destination">
-        <th mat-header-cell *matHeaderCellDef> Destination </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.destination }} </td>
-      </ng-container>
+        <!-- Destination Column -->
+        <ng-container matColumnDef="destination">
+          <th mat-header-cell *matHeaderCellDef> Destination </th>
+          <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.destination }} </td>
+        </ng-container>
 
-      <!-- Status Column -->
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef> Status </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.status }} </td>
-      </ng-container>
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef> Status </th>
+          <td mat-cell *matCellDef="let changeRequest"> 
+            <span
+            class="w-24 h-8 flex justify-center items-center rounded-md text-sm font-medium text-center text-white shadow-lg"
+            [ngClass]="{
+              'bg-yellow-400': changeRequest.status?.toLowerCase() === OrderStatus.Draft,
+              'bg-green-400': changeRequest.status?.toLowerCase() === OrderStatus.Published,
+              'bg-red-500': changeRequest.status?.toLowerCase() === OrderStatus.Closed,
+              'bg-red-400':changeRequest.status?.toLowerCase() === OrderStatus.Cancel,
+              'bg-orange-400': changeRequest.status?.toLowerCase() === OrderStatus.Assigned,
+              'bg-blue-400': changeRequest.status?.toLowerCase() === OrderStatus.Active,
+              'bg-blue-600': changeRequest.status?.toLowerCase() === OrderStatus.Ordered
+            }">
+            {{ changeRequest.status}}
+          </span> </td>
+        </ng-container>
 
-      <!-- CR Status Column -->
-      <ng-container matColumnDef="cr">
-        <th mat-header-cell *matHeaderCellDef> CR Status </th>
-        <td mat-cell *matCellDef="let changeRequest"> {{ changeRequest.crStatus }} </td>
-      </ng-container>
+        <!-- CR Status Column -->
+        <ng-container matColumnDef="cr">
+          <th mat-header-cell *matHeaderCellDef> CR Status </th>
+          <td mat-cell *matCellDef="let changeRequest">
+            <span
+              class="w-24 h-8 flex justify-center items-center rounded-md text-sm font-medium text-center text-white shadow-lg"
+              [ngClass]="{
+                'bg-red-500': changeRequest.crStatus.toLowerCase() === 'rejected',
+                'bg-orange-400': changeRequest.crStatus.toLowerCase() === 'pending',
+                'bg-blue-600': changeRequest.crStatus.toLowerCase() === 'approved'
+              }">
+              {{ changeRequest.crStatus }}
+            </span>
+          </td>
+        </ng-container>
 
-      <!-- Actions Button Column -->
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef> Actions </th>
-        <td mat-cell *matCellDef="let changeRequest">
-          
-          <!-- View Button (Always Visible) -->
-          <button mat-raised-button color="primary"
-            class="bg-yellow-500 p-4 m-1 rounded-lg hover:bg-yellow-300 text-white"
-            matTooltip="View Change Request"
-            (click)="openCRView(changeRequest)">
-            <mat-icon>visibility</mat-icon>
-          </button>
 
-          <!-- Approve Button (Visible if showButtons is true, CR is not Pending or Approved) -->
-          <button mat-raised-button color="primary"
-            *ngIf="showButtons && changeRequest.crStatus !== CRStatus.Pending && changeRequest.crStatus !== CRStatus.Approved"
-            class="bg-green-500 p-4 m-1 rounded-lg hover:bg-green-300 text-white"
-            matTooltip="Mark as Approved"
-            (click)="openCRView(changeRequest)">
-            <mat-icon>task_alt</mat-icon>
-          </button>
+        <!-- Actions Button Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef> Actions </th>
+          <td mat-cell *matCellDef="let changeRequest">
 
-          <!-- Reject Button (Visible if showButtons is true, CR is not Pending or Rejected) -->
-          <button mat-raised-button color="primary"
-            *ngIf="showButtons && changeRequest.crStatus !== CRStatus.Pending && changeRequest.crStatus !== CRStatus.Rejected"
-            class="bg-red-500 p-4 m-1 rounded-lg hover:bg-red-300 text-white"
-            matTooltip="Reject Change Request"
-            (click)="openCRView(changeRequest)">
-            <mat-icon>dangerous</mat-icon>
-          </button>
+            <!-- View Button (Always Visible) -->
+            <button mat-raised-button color="primary"
+              class="bg-yellow-500 p-4 m-1 rounded-lg hover:bg-yellow-300 text-white"
+              *ngIf="changeRequest.crStatus == CRStatus.Pending" matTooltip="View Change Request"
+              (click)="openCRView(changeRequest)">
+              <mat-icon>visibility</mat-icon>
+            </button>
 
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Table Header and Row Definitions -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumnsChangeRequest"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumnsChangeRequest;"></tr>
-    </table>
-  </div>
-</mat-tab>
+        <!-- Table Header and Row Definitions -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumnsChangeRequest"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumnsChangeRequest;"></tr>
+      </table>
+    </div>
+    <ng-template #loading>
+      <p>Loading...</p>
+    </ng-template>
+  </mat-tab>
 
 
 

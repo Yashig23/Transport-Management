@@ -18,19 +18,16 @@ import { ToastrService, ToastrModule } from 'ngx-toastr';
 
    // Method to show success toaster
   public toasterSuccess(message: string, title?: string): void {
-    console.log('toaster runned');
     this._toasterService.success(message, title, this.info); // Optionally, a title can be passed
   }
 
   // Method to show error toaster
   public toasterError(message: string, title?: string): void {
-    console.log('toaster runned');
     this._toasterService.error(message, title,this.info); // Optionally, a title can be passed
   }
 
   // Method to show info toaster
   public toasterInfo(message: string, title?: string): void {
-    console.log('toaster runned');
     this._toasterService.info(message, title, this.info); // Optionally, a title can be passed
   }
 

@@ -17,8 +17,6 @@ export class SupplierDialogService{
       map((orders: TransportFormType[]) => {
         // Find the order with the specified orderNo
         const order = orders.find(o => o.orderNo === orderNo);
-        console.log('found order', order);
-        
         // Return the suppliers if the order is found, otherwise return an empty array
         return order ? order.suppliers : [];
       })

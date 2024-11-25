@@ -23,7 +23,6 @@ export class ChangeRequestService implements OnInit {
     this._transportService.savePublishedFile(orderData).subscribe({
       next: () => {
         this._toasterservice.toasterSuccess('Saved Change Request Successfully');
-        alert('Changed Successfully');
       },
       error: () => {
         // Handle error while saving the published file
