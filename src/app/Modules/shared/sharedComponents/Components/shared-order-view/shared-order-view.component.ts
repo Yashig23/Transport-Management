@@ -9,6 +9,7 @@ import { OrderStatus } from '../../../../transport/Constants/constants';
 import { ChangeRequestService } from '../../../../transport/Services/ChangeRequest.service';
 import { DialogBoxComponent } from '../dialog-box/dialog-box.component';
 import { CRViewComponent } from '../crview/crview.component';
+import { DataSharingService } from '../../Services/crService';
 
 @Component({
   selector: 'app-shared-order-view',
@@ -36,12 +37,12 @@ export class SharedOrderViewComponent {
   public displayedColumnsTransport: string[] = ['transportId', 'date', 'origin', 'destination', 'product', 'quantity'];
   public displayedColumnsChangeRequest: string[] = ['Id', 'createdAt', 'updatedAt', 'origin', 'destination', 'status', 'cr', 'actions'];
 
-  constructor(private activatedRoute: ActivatedRoute, private _transportService: TransportFormService,
+  constructor(private dataSharingService: DataSharingService,  private activatedRoute: ActivatedRoute, private _transportService: TransportFormService,
     private dialog: MatDialog, private _toaster: toasterService, private _changeRequest: ChangeRequestService) { }
 
   ngOnInit(): void {
     this.initializeEditForm();
-
+    this.dataSharingService.setSharedData(false);
     this.activatedRoute.parent?.data.subscribe(data => {
       this.showButtons = data['moduleType'];
     });
@@ -60,13 +61,11 @@ export class SharedOrderViewComponent {
   }
 
   public getTransportByID(): void {
-    this._transportService.getOrderById(this.paramId).subscribe({
+    this._transportService.getOrderById(this.paramId + `?t=${new Date().getTime()}`).subscribe({
       next: (data: TransportFormType) => {
         this.transportViewForm = data;
         this.status = data.status;
         this.orderNo = data.orderNo;
-        console.log('data', data);
-        console.log('suppliers', this.suppliers);
 
         // Empty the arrays before adding new data
         this.suppliers = [];
@@ -100,7 +99,7 @@ export class SharedOrderViewComponent {
 
   public openSupplierEdit(id: string|null): void{
     const dialog = this.dialog.open(SupplierDialogComponent,{
-      width: '1900px',
+      width: '2000px',
       height: '700px',
     });
     if(id){
@@ -109,7 +108,17 @@ export class SharedOrderViewComponent {
     dialog.componentInstance.editForm = true;
     dialog.afterClosed().subscribe({
       next: ()=>{
+        this._transportService.updateOrderStatus(this.paramId, { status: OrderStatus.Assigned }).subscribe({
+          next: () => {
+            // this._toaster.toasterSuccess('Status Updated successfully');
+            // this.getTransportByID();  // Fetch the updated data
+          },
+          error: () => {
+            this._toaster.toasterWarning('Something went wrong');
+          }
+        });
         this.initializeEditForm();
+
       },
       error: ()=>{
         this._toaster.toasterWarning('Some Error Occured');
@@ -127,7 +136,6 @@ export class SharedOrderViewComponent {
         if(this.orderNo){
         const matchingCRs = data.filter(cr => cr.orderNo === this.orderNo);
         this.cr = matchingCRs;
-        console.log('cr', this.cr);
         }
       },
       error: (err) => {
@@ -147,7 +155,6 @@ export class SharedOrderViewComponent {
 
   public changeRequest(paramId: string | null): void {
     if (this.status != OrderStatus.Published) {
-      // this._changeRequest.changeStatus(OrderStatus.New, paramId);
     }
     else {
       this._toaster.toasterWarning('Status of Order is New, Change Request cannot be generated');
@@ -168,21 +175,19 @@ export class SharedOrderViewComponent {
     dialogRef.componentInstance.paramId = this.paramId;
     dialogRef.componentInstance.crId = data.id;
     dialogRef.componentInstance.orderId = data.orderId;
+    dialogRef.componentInstance.parentDialogRef = dialogRef;
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.initializeEditForm();
-      }
+    dialogRef.afterClosed().subscribe(() => {
+      this.initializeEditForm();
     })
   }
   
 
   getProductDisplayValue(): string {
     if (!this.transportViewForm.product || !this.transportViewForm.product.length) {
-      return ''; // Return empty if no products
+      return ''; 
     }
 
-    // Join productName and quantity pairs with commas
     return this.transportViewForm.product
       .map(product => `${product.productName} - ${product.quantity}`)
       .join(', ');
@@ -237,8 +242,6 @@ export class SharedOrderViewComponent {
     // Use 'afterClosed()' to handle dialog close event
     dialogRef.afterClosed().subscribe((result: any) => {
       this.getTransportByID();
-      // this.changeStatus(OrderStatus.Assigned);
-      // supplierData.submitted = true;
     });
   }
 

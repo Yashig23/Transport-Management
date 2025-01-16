@@ -31,14 +31,14 @@ export interface OrderForm {
   startDate: FormControl<Date| null>,
   dayEstimation: FormControl<number | null>,
   endDate?: FormControl<Date | null>, // Make it disabled for manual entry
-  transportArray: FormArray<FormGroup<TransportFormGroup>>
+  transportArray: FormArray<FormGroup<TransportFormGroup>>,
 }
 
 export interface OrderFormType{
-  id?: string; 
+  id?: string|null; 
   orderNo: string|null;
   origin: string|null;
-  product: { productName: string | null, quantity: string | null }[];
+  product: Product[];
   destination: string|null;
   startDate: Date|null;
   endDate: Date|null;
@@ -46,12 +46,13 @@ export interface OrderFormType{
   cr?: string|null;
   dayEstimation: number|null;
   suppliers?: SupplierFormType[];
+  transportArray: TransportDetailsType[]
 }
 
 export interface CRComparisionValue{
   orderNo: string|null,
   origin: string|null,
-  product: { productName: string | null, quantity: string | null }[],
+  product: Product[],
   destination: string|null,
   startDate: Date|null,
   endDate?: Date|null,
@@ -124,10 +125,10 @@ export interface ContainerForm{
 }
 
 export interface TransportFormType{
-  id?: string;
+  id?: string|null;
   orderNo: string|null;
   origin: string|null;
-  product: { productName: string | null, quantity: string | null }[];
+  product: Product[];
   destination: string|null;
   startDate:Date|null;
   endDate: Date|null;
@@ -147,7 +148,7 @@ export enum CRStatus{
 
 export interface TransportDetailsType {
   transportId: string|null;
-  date: string|null; // or Date if you prefer
+  date: Date|null; // or Date if you prefer
   origin: string|null;
   destination: string|null;
   product: string|null;
@@ -167,8 +168,8 @@ export enum OrderStatus {
 
 //CR
 export interface Product {
-  productName?: string | null;
-  quantity?: string | null;
+  productName: string | null;
+  quantity: string | null;
 }
 
 // Define TransportDetails interface (correcting the issue with `transportId`)

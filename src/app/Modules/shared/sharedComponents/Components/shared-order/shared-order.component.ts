@@ -168,18 +168,19 @@ export class SharedOrderComponent {
     // if (!this.searchQuery.trim()) {
     this._transportService.getAllOrders().subscribe((orders: TransportFormType[]) => {
       if (this.searchQuery.toLowerCase()) {
+        const updatedSearchQuery = this.searchQuery.toLowerCase();
         this.searchResults = orders.filter(order => {
           
           // Ensure fields like orderNo are treated as strings for comparison
-          const orderNoMatch = order.orderNo?.toString().toLowerCase().includes(this.searchQuery);
-          const originMatch = order.origin?.toString().toLowerCase().includes(this.searchQuery);
-          const statusMatch = order.status?.toString().toLowerCase().includes(this.searchQuery);
-          const destinationMatch = order.destination?.toString().toLowerCase().includes(this.searchQuery);
+          const orderNoMatch = order.orderNo?.toString().toLowerCase().includes(updatedSearchQuery);
+          const originMatch = order.origin?.toString().toLowerCase().includes(updatedSearchQuery);
+          const statusMatch = order.status?.toString().toLowerCase().includes(updatedSearchQuery);
+          const destinationMatch = order.destination?.toString().toLowerCase().includes(updatedSearchQuery);
   
           // Check if any product matches the search query
           const productMatch = order.product.some(product => 
-            product.productName?.toString().toLowerCase().includes(this.searchQuery) || 
-            product.quantity?.toString().toLowerCase().includes(this.searchQuery)
+            product.productName?.toString().toLowerCase().includes(updatedSearchQuery) || 
+            product.quantity?.toString().toLowerCase().includes(updatedSearchQuery)
           );
   
           // Return true if any of the fields match the search query

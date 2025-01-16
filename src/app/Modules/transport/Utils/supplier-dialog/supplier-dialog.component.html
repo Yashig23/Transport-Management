@@ -1,11 +1,11 @@
 <header class="flex justify-between sticky top-0 z-10 bg-white shadow-md">
-  <div class="text-orange-600 text-lg m-2 font-bold">Assignment Form</div>
+  <div class="text-orange-600 text-2xl mx-4 font-medium flex my-3">Assignment Form</div>
 
   <div class="flex justify-end">
     <!-- Add Supplier Form Button -->
     <div *ngIf="!assignContainerForm">
       <button (click)="addSupplierForm()"
-        class="p-2 flex w-8 h-8 justify-center items-center bg-orange-600 m-2 rounded-md text-lg font-thin text-white">
+        class="p-2 flex w-10 h-9 justify-center items-center bg-green-600 mx-2 mt-4 rounded-md text-lg font-thin text-white">
         <mat-icon>add</mat-icon> <!-- Properly closing the mat-icon tag -->
       </button>
     </div>
@@ -14,11 +14,11 @@
     <!-- Reset Button-->
     <div *ngIf="!assignContainerForm">
       <button (click)="reset()"
-        class="px-3 py-2 flex justify-center items-center border-gray-200 border-4 hover:bg-slate-100 bg-white m-2 rounded-md text-lg font-thin text-green-600 shadow-md">Reset</button>
+        class="px-3 py-2 flex justify-center items-center hover:bg-slate-100 bg-white m-2 rounded-md text-lg font-medium text-green-600 shadow-md">Reset</button>
     </div>
 
 
-    <div class="p-2 flex rounded-md justify-center items-center cursor-pointer border-4 border-gray-200 bg-white m-2 hover:bg-slate-100 text-lg font-thin text-orange-600 shadow-md"
+    <div class="px-3 py-2 flex rounded-md justify-center items-center cursor-pointer bg-red-300 m-2 hover:bg-red-500 text-lg font-medium text-white shadow-md"
       (click)="dialogRef.close()">
       close
     </div>
@@ -26,7 +26,7 @@
   </div>
 
 </header>
-<section class="p-6 m-1 space-y-8 shadow-xl border-orange-300 bg-orange-100 rounded-xl flex-1 overflow-y-auto w-full">
+<section class="p-6 m-1 space-y-8 shadow-xl border-orange-300 bg-orange-100 flex-1 overflow-y-auto w-full">
 
   <div *ngIf="formErrorMessages.length > 0" class="error-messages">
     <div *ngFor="let message of formErrorMessages" class="alert alert-danger">
@@ -39,7 +39,7 @@
       <div *ngFor="let supplier of suppliers.controls; let i = index" [formGroupName]="i">
         <div class="flex justify-center">
 
-          <div class="ml-4">
+          <div class="m-2">
             <label [attr.for]="'supplierNo-'+ i" class="block text-lg font-medium text-orange-500">Supplier Ref
               Id:</label>
             <input [attr.id]="'supplierNo-'+ i" type="text" formControlName="supplierNo"
@@ -48,12 +48,12 @@
             <div *ngIf="supplier.controls.supplierNo?.errors?.['pattern']" class="text-red-500">Only AlphaNumberic
               allowed
             </div>
-            <div *ngIf="supplier.controls.supplierNo?.errors?.['duplicateSupplierId']" class="text-red-500">
-              {{ supplier.controls.supplierNo.errors?.['duplicateSupplierId'] }}
+            <div *ngIf="supplier.controls['supplierNo']?.errors?.['duplicateSupplierNo']" class="text-red-500">
+              {{ supplier.controls['supplierNo'].errors?.['duplicateSupplierNo'] }}
             </div>
           </div>
 
-          <div class="m-1">
+          <div class="m-2">
             <label [attr.for]="'LeasePackage-'+ i" class="block text-lg font-medium text-orange-500">Lease
               Package</label>
             <input [attr.id]="'LeasePackage-'+ i" type="text" formControlName="packageName"
@@ -63,7 +63,7 @@
             </div>
           </div>
 
-          <div class="m-1">
+          <div class="m-2">
             <label [attr.for]="'releasePort-'+ i" class="block text-lg font-medium text-orange-500">Release
               Port:</label>
             <input [attr.id]="'releasePort-'+ i" type="text" formControlName="releasePort"
@@ -77,7 +77,7 @@
             </div>
           </div>
 
-          <div class="m-1">
+          <div class="m-2">
             <label [attr.for]="'returnPort-'+ i" class="block text-lg font-medium text-orange-500">Return Port:</label>
             <input [attr.id]="'returnPort-'+ i" type="text" formControlName="returnPort"
               style="text-transform: uppercase;"
@@ -91,7 +91,7 @@
           </div>
 
           <div>
-            <div class="m-1">
+            <div class="m-2">
               <label [attr.for]="'quantity-'+ i" class="block text-lg font-medium text-orange-500">Quantity:</label>
               <input [attr.id]="'quantity-'+ i" type="text" formControlName="quantity" step="1" min="0"
                 oninput="this.value = this.value.replace(/[^0-9]/g, '')"
@@ -104,21 +104,21 @@
             </div>
           </div>
 
-          <div class="m-1">
+          <div class="m-2">
             <label [attr.for]="'product-'+ i" class="block text-lg font-medium text-orange-500">Product:</label>
             <select
-              class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950"
+              class="mt-2 block w-[130px] px-6 py-3 h-[52px]  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950"
               formControlName="product">
-              <option *ngFor="let product of productQuantityArray" [value]="product.productName">{{product.productName}}
-              </option>
+              <!-- <option *ngFor="let product of productQuantityArray" [value]="product.productName">{{product.productName}}
+              </option> -->
+              <option *ngFor="let product of getUniqueProducts()" [value]="product.productName">{{ product.productName }}</option>
             </select>
           </div>
 
           <!-- your-component.component.html -->
-          <div class="m-1"> <!-- Margin bottom for spacing -->
+          <div class="m-2"> <!-- Margin bottom for spacing -->
             <label [attr.for]="'product-'+ i" class="block text-lg font-medium text-orange-500">Start Date: </label>
-            <mat-form-field class="w-50% h-10%"> <!-- Reduced width -->
-              <!-- <mat-label class="block text-sm p-2 font-thin">Start Date:</mat-label> -->
+            <mat-form-field class="w-50% h-9% mt-1"> <!-- Reduced width -->
               <input matInput [matDatepicker]="startPicker" formControlName="startDate"
                 [matDatepickerFilter]="startDateFilter">
               <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
@@ -126,10 +126,9 @@
             </mat-form-field>
           </div>
 
-          <div class="m-1"> <!-- Margin bottom for spacing -->
+          <div class="m-2"> <!-- Margin bottom for spacing -->
             <label [attr.for]="'product-'+ i" class="block text-lg font-medium text-orange-500">End Date: </label>
-            <mat-form-field class="w-50% h-10%"> <!-- Reduced width -->
-              <!-- <mat-label class="block text-sm p-2 font-thin">End Date:</mat-label> -->
+            <mat-form-field class="w-50% h-9% mt-1"> <!-- Reduced width -->
               <input matInput [matDatepicker]="endPicker" formControlName="endDate"
                 [matDatepickerFilter]="endDateFilter">
               <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
@@ -146,7 +145,7 @@
           <!-- Copy Supplier Button -->
           <div class="flex justify-end" *ngIf="!assignContainerForm">
             <button type="button" (click)="copySupplierForm(i)"
-              class=" text-gray-800  p-2 m-2 w-8 h-8 text-lg flex justify-center rounded-md items-center font-bold hover:text-white"><mat-icon>content_copy</mat-icon></button>
+              class=" text-gray-800  p-2 m-2 w-10 h-8 text-lg flex justify-center rounded-md items-center font-bold hover:text-white"><mat-icon>content_copy</mat-icon></button>
           </div>
         </div>
 
@@ -174,6 +173,12 @@
             class="text-red-500 text-sm mt-2 flex justify-center">
             Duplicate container IDs are not allowed within the same supplier.
           </div>
+          <div *ngIf="errors.length > 0" class="error-list">
+            <h3>Errors:</h3>
+            <ul>
+              <li *ngFor="let error of errors">{{ error }}</li>
+            </ul>
+          </div>          
         </div>
 
       </div>

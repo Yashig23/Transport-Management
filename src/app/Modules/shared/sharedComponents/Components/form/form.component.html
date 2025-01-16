@@ -19,7 +19,7 @@
         <!-- Origin -->
         <div class="form-group">
           <label for="origin" class="block text-lg font-medium text-orange-500">Origin</label>
-          <input id="origin" type="text" formControlName="origin"
+          <input id="origin" type="text" formControlName="origin" (input)="toLowerCase('origin')"
             class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="Enter Origin">
           <div *ngIf="transportForm.controls['origin']?.errors?.['originRequired']" class="text-red-500 text-sm">
@@ -30,7 +30,7 @@
         <!-- Destination -->
         <div class="form-group">
           <label for="destination" class="block text-lg font-medium text-orange-500">Destination</label>
-          <input id="destination" type="text" formControlName="destination"
+          <input id="destination" type="text" formControlName="destination" (input)="toLowerCase('destination')"
             class="mt-2 block w-full px-4 py-3 rounded-lg shadow-md text-lg text-gray-950 bg-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="Enter Destination">
           <div *ngIf="transportForm.controls['destination']?.errors?.['destinationRequired']"
@@ -68,11 +68,10 @@
 
         <!-- End Date -->
         <div class="form-group">
-          <label for="endDate" class="block text-lg font-medium text-orange-500">Start Date</label>
+          <label for="endDate" class="block text-lg font-medium text-orange-500">End Date</label>
           <mat-form-field class="w-full ">
             <input matInput [matDatepicker]="endPicker" formControlName="endDate"
               class="mt-2 block w-full px-4 py-3 rounded-lg  text-lg text-gray-950 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            <!-- <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle> -->
             <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
         </div>
@@ -203,8 +202,8 @@
 
         <!-- Origin -->
         <div class="form-group ml-4 mr-4 mt-8">
-          <label for="origin" class="block text-lg font-medium text-orange-500">Origin</label>
-          <input id="origin" type="text" formControlName="origin"
+          <label for="origin-{{i}}" class="block text-lg font-medium text-orange-500">Origin</label>
+          <input id="origin-{{i}}" type="text" formControlName="origin" style="text-transform: lowercase;" (input)="toLowerCase('origin')"
             class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
           <div *ngIf="control.controls['origin']?.errors?.['duplicateOrigin']" class="text-red-500">
             {{ control.controls['origin'].errors?.['duplicateOrigin'] }}
@@ -217,7 +216,7 @@
         <!-- Destination -->
         <div class="form-group ml-4 mr-4">
           <label for="destination" class="block text-lg font-medium text-orange-500">Destination</label>
-          <input id="destination" type="text" formControlName="destination"
+          <input id="destination" type="text" formControlName="destination" style="text-transform: lowercase;" (input)="toLowerCase('destination')"
             class="mt-2 block w-full px-6 py-3 rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
         </div>
 
@@ -225,19 +224,19 @@
         <div class="form-group ml-4 mr-4">
           <label for="product" class="block text-lg font-medium text-orange-500">Product</label>
           <select formControlName="product"
-            class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+            class="mt-2 block w-[150px] px-6 py-[16px]  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
             <option *ngFor="let product of productArray.controls" [value]="product.value.productName">
               {{ product.value.productName }}
             </option>
           </select>
         </div>
+        <!-- oninput="this.value = this.value.replace(/[^0-9]/g, '')" -->
 
         <!-- Quantity -->
         <div class="form-group ml-4 mr-4">
           <label for="quantity" class="block text-lg font-medium text-orange-500">Quantity</label>
-          <input id="quantity" type="text" formControlName="quantity" step="1" min="0"
-            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-            class="mt-2 block w-full px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
+          <input id="quantity" type="text" formControlName="quantity"
+            class="mt-2 block w-[100px] px-6 py-3  rounded-md shadow-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg bg-white text-gray-950">
           <div *ngIf="control.controls['quantity']?.errors?.['quantityMismatch']" class="text-red-500">
             {{ control.controls['quantity'].errors?.['quantityMismatch'] }}
           </div>
