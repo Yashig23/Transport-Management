@@ -17,6 +17,10 @@ const routes: Routes = [
     data: { moduleType: false }
   },
   {
+    path: 'stocks',
+    loadChildren: () => import('./Modules/stocks/stocks.module').then(m => m.StocksModule)
+  },
+  {
     path: '',
     redirectTo: '/admin', 
     pathMatch: 'full'
