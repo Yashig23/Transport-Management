@@ -662,8 +662,17 @@ export class StockExecutionComponent implements OnInit {
       return uldOfItems;
     };
   
+    // Flatten current groupedData
     const uldOfItems = flattenGroupedData();
-    this.ULDDataOfID.items = [...uldOfItems.items]; // Assign flattened data
+    
+    // Compare the current data with previous saved data
+    if (JSON.stringify(this.ULDDataOfID.items) === JSON.stringify(uldOfItems.items)) {
+      this.toaster.toasterInfo('No changes detected, save action skipped.');
+      return;  
+    }
+  
+    // Assign flattened data to ULDDataOfID
+    this.ULDDataOfID.items = [...uldOfItems.items];
   
     if (this.ULDDataOfID) {
       this.stocks_service.updateDataInStockExecution(this.ULDDataOfID, this.numericID).subscribe({
@@ -678,6 +687,7 @@ export class StockExecutionComponent implements OnInit {
       console.log('Save action canceled.');
     }
   }
+  
   
 
 
