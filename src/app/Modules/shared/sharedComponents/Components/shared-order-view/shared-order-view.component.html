@@ -79,14 +79,15 @@
       </button>
     </div>
     <div>
+         <!-- *ngIf="status !=OrderStatus.Draft && showButtons && status != OrderStatus.Closed" -->
       <button (click)="changeStatus(OrderStatus.Closed)" mat-raised-button
-        *ngIf="status !=OrderStatus.Draft && showButtons && status != OrderStatus.Closed"
+        *ngIf="status == OrderStatus.Ordered"
         class="bg-red-800 p-4 m-1 rounded-lg hover:bg-red-300 text-white" matTooltip="Close Order">
         <mat-icon>block</mat-icon>
       </button>
     </div>
     <div
-      *ngIf="!showButtons  && status != OrderStatus.Draft  && status != OrderStatus.Closed && status != OrderStatus.Cancel">
+      *ngIf="!showButtons  && status != OrderStatus.Draft  && status != OrderStatus.Closed && status != OrderStatus.Cancel && status != OrderStatus.Ordered && status != OrderStatus.Assigned">
       <button class="bg-orange-500 p-4 m-1 rounded-lg hover:bg-orange-300 text-white"
         [routerLink]="[!showButtons ? '/client/transport-form' : '/admin/transport-form', paramId]"
         matTooltip="Change Request">
@@ -195,7 +196,6 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumnsSupplier;"></tr>
       </table>
     </div>
-
   </mat-tab>
 
 

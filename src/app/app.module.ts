@@ -18,6 +18,7 @@ import { RouterModule } from '@angular/router';
 import {MatIconModule} from '@angular/material/icon';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
+import { SharedModule } from "./Modules/shared/shared.module";
 
 
 @NgModule({
@@ -44,9 +45,9 @@ import { ToastrModule } from 'ngx-toastr';
         extendedTimeOut: 1000,
         closeButton: true
     }),
-    
-    MatIconModule
-  ],
+    MatIconModule,
+    SharedModule
+],
   providers: [
     provideClientHydration(),
     provideAnimationsAsync(),

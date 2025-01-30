@@ -21,6 +21,7 @@ import { FormComponent } from './sharedComponents/Components/form/form.component
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { CRViewComponent } from './sharedComponents/Components/crview/crview.component';
 import { CopyDialogComponent } from './sharedComponents/copy-dialog/copy-dialog.component';
+import { SidebarComponent } from './sharedComponents/Components/sidebar/sidebar.component';
 
 @NgModule({
   declarations: [
@@ -29,7 +30,8 @@ import { CopyDialogComponent } from './sharedComponents/copy-dialog/copy-dialog.
     DialogBoxComponent,
     FormComponent,
     CRViewComponent,
-    CopyDialogComponent
+    CopyDialogComponent,
+    SidebarComponent
   ],
   imports: [
     CommonModule,
@@ -49,6 +51,6 @@ import { CopyDialogComponent } from './sharedComponents/copy-dialog/copy-dialog.
     MatDatepickerModule,
     // MatButtonModule
   ],
-  exports: [SharedOrderComponent, SharedOrderViewComponent, FormComponent]
+  exports: [SharedOrderComponent, SharedOrderViewComponent, FormComponent, SidebarComponent]
 })
 export class SharedModule { }

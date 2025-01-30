@@ -15,6 +15,7 @@ import { DialogBoxComponent } from '../dialog-box/dialog-box.component';
   styleUrl: './crview.component.scss'
 })
 export class CRViewComponent implements OnInit {
+  parentDialogRef!: MatDialogRef<CRViewComponent>;
   public originalData!: TransportFormType;
   public changedData!: CRFormValue;
   public changes: { [key: string]: boolean } = {};
@@ -148,48 +149,25 @@ export class CRViewComponent implements OnInit {
       this.showMessage = true;
       this.Message = 'Reject Message Required';
       return;
-    }
-    else {
+    } else {
       const dialogRef = this.dialog.open(DialogBoxComponent, {
         width: '300px',
         data: { message: 'Are you sure you want to change the status?' }
       });
 
-      // dialogRef.afterClosed().subscribe(result => {
-      //   if (result) {
-      //     if (this.crId != null) {
-      //       this._transportService.updateOrderStatusCR(this.crId, { crStatus: CRStatus.Rejected }).subscribe({
-      //         next: () => {
-      //           this._toasterService.toasterSuccess('Status updated Successfully');
-      //           dialogRef.close();
-      //         },
-      //         error: () => {
-      //           this._toasterService.toasterWarning('Some Error Occured');
-      //           dialogRef.close();
-      //         }
-      //       });
-      //     } else {
-      //       this._toasterService.toasterWarning('Some Error Occured');
-      //       dialogRef.close();
-      //     }
-      //   }
-      //   else {
-      //     this._toasterService.toasterInfo('Id not present');
-      //   }
-      // });
       dialogRef.afterClosed().subscribe(result => {
         if (result && this.rejectMessage) {
           if (this.crId != null) {
-            // Adding the rejectMessage field explicitly while updating the status
             const updatePayload = {
               crStatus: CRStatus.Rejected,
-              rejectMessage: this.rejectMessage 
+              rejectMessage: this.rejectMessage
             };
-      
+
             this._transportService.updateOrderStatusCR(this.crId, updatePayload).subscribe({
               next: () => {
                 this._toasterService.toasterSuccess('Status updated successfully with Reject Message.');
                 dialogRef.close();
+                this.parentDialogRef.close(); // Close the CRViewComponent dialog
               },
               error: () => {
                 this._toasterService.toasterWarning('Some error occurred while updating the status.');
@@ -204,7 +182,6 @@ export class CRViewComponent implements OnInit {
           this._toasterService.toasterInfo('Action cancelled. No updates were made.');
         }
       });
-      
     }
   }
 

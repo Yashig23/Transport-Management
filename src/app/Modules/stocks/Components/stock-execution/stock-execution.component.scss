@@ -1,0 +1,27 @@
+.input-style {
+    border-bottom: 2px solid rgb(7, 7, 123); /* No visible border initially */
+    transition: all 0.3s ease-in-out; /* Smooth transition */
+    outline: none; /* Remove the outline */
+}
+
+.input-style:focus {
+    border-bottom: 2px solid rgb(7, 7, 123); /* Blue border on focus */
+    background-color: #e2e8f0; /* Slightly lighter background on focus */
+}
+
+.input-style::placeholder {
+    transition: opacity 0.3s ease-in-out;
+    opacity: 0.6; /* Slightly transparent placeholder */
+}
+
+.input-style:focus::placeholder {
+    opacity: 0; /* Hide placeholder on focus */
+}
+
+/* In your component's stylesheet */
+
+  .mat-form-field .ng-tns-c3736059725-0 { 
+    border: 1px solid rgb(30, 58, 138); // Light gray border
+    color: rgb(30, 58, 138);
+  }
+

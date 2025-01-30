@@ -1,0 +1,136 @@
+<div class="flex bg-white">
+  <section class="m-8 w-full">
+    <div class="text-[4rem] text-blue-950 font-bold">Stock</div>
+
+    <!-- First dialog box-->
+    <div class="bg-slate-100 shadow-lg rounded-lg p-5 mt-10">
+      <div class="flex justify-between items-center text-blue-900 font-medium">
+        <div>Location</div>
+        <div>Filter</div>
+        <div>Reference</div>
+        <div>Status</div>
+        <div>Start Date</div>
+        <div>Latest Submission Date</div>
+        <div class="flex justify-center items-center">
+          <mat-icon (click)="saveStatus()" class="cursor-pointer">save</mat-icon>
+          <mat-icon class="cursor-pointer">print</mat-icon>
+        </div>
+      </div>
+
+
+      <div class="flex justify-start items-center mt-5 text-blue-800">
+        <div class="mr-20">
+
+          <div> {{ULDDataOfID.locations[0].locationName}}</div>
+          <div>{{ULDDataOfID.locations[0].locationShortCode}}</div>
+        </div>
+        <div class="px-10 mx-5">
+          <ul>
+            <li *ngFor="let filter of ULDDataOfID.uldFilters">{{ filter.uldGroupShortName }}</li>
+          </ul>
+        </div>
+        <div class="px-10 mx-8"> {{ULDDataOfID!.identifier}}</div>
+        <div class="px-10 mx-10">{{ULDDataOfID!.statusId}}</div>
+        <div class="px-10 mx-12">{{ULDDataOfID!.startDateLocal | date}}</div>
+        <div class="px-10 mx-20">{{ULDDataOfID!.statusChangedAt | date}}</div>
+      </div>
+    </div>
+
+
+    <!--second dialog box-->
+    <div class="bg-slate-100 shadow-lg rounded-lg p-5 mt-10 w-50%">
+      <div class="flex justify-between items-center text-blue-900 font-medium">
+        <div>ULD ID</div>
+        <div>Location</div>
+        <div>Condition</div>
+        <div class="flex justify-center items-center">
+          <mat-icon (click)="addNewULD()" class="bg-b cursor-pointer">add</mat-icon>
+        </div>
+      </div>
+
+      <div class="flex justify-start items-center mt-5 text-blue-800">
+        <div class="pr-10 w-[30rem]">
+          <!-- ULD ID Section -->
+          <input #ULDInput [(ngModel)]="ULDId" (ngModelChange)="onULDIdChange($event)"
+            class="input-style border-b-2 border-blue-900 p-2 bg-slate-100 w-[20rem]" placeholder="Enter ULD ID">
+        </div>
+
+        <div class="px-4 w-[30rem] flex">
+          <mat-form-field class="w-[20rem]">
+            <mat-label></mat-label>
+            <mat-select [(value)]="location">
+              <mat-option *ngFor="let location of ULDDataOfID?.locations" [value]="location.locationName">
+                {{ location.locationName }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="px-10  w-[30rem] flex">
+
+          <mat-form-field class="w-[20rem]">
+            <mat-select [(value)]="selectedCondition">
+              <mat-option *ngFor="let condition of conditionalId" [value]="condition.value">
+                {{ condition.value }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <div *ngFor="let location of groupedData | keyvalue">
+      <div *ngIf="location.value && hasNonEmptyArrays(location.value)">
+      <div class="bg-slate-100 shadow-lg rounded-lg p-5 mt-10 text-blue-900">
+        <strong class="font-semibold text-[18px]">{{ location.key }}</strong>
+        <span>
+          Total: {{ itemSummary[location.key]?.totalItems ?? 0 }} |
+          Serviceable: {{ itemSummary[location.key]?.serviceableItems ?? 0 }} |
+          Damaged: {{ itemSummary[location.key]?.damagedItems ?? 0 }}
+        </span>
+        
+        <div *ngFor="let uldType of location.value | keyvalue" class="mt-5">
+          <ng-container *ngIf="hasNonTempLocationItems(location.value[uldType.key])">
+            <strong>{{ uldType.key }}</strong>
+  
+            <div *ngIf="itemSummary[location.key]?.uldTypesSummary && itemSummary[location.key].uldTypesSummary[uldType.key]">
+              <span>
+                Total: {{ itemSummary[location.key].uldTypesSummary[uldType.key]?.totalItems ?? 0 }} |
+                Serviceable: {{ itemSummary[location.key].uldTypesSummary[uldType.key]?.serviceableItems ?? 0 }} |
+                Damaged: {{ itemSummary[location.key].uldTypesSummary[uldType.key]?.damagedItems ?? 0 }}
+              </span>
+            </div>
+    
+            <div class="flex items-center">
+              <div *ngFor="let item of location.value[uldType.key]" class="mr-2">
+                <div *ngIf="!item.isTempLocation">
+                  {{ item.uldItemIdentifier }}
+                  <mat-checkbox class="example-margin" [checked]="item.isFound" (change)="toggleIsFound(item)">
+                  </mat-checkbox>
+                  <span class="w-[15rem] mx-3 cursor-pointer">
+                    <span
+                      class="px-2 py-1 rounded-lg text-white"
+                      [ngClass]="{
+                        'bg-green-400 text-white': item.conditionId === 'Serviceable',
+                        'bg-red-400 text-white': item.conditionId === 'Damaged'
+                      }"
+                      (click)="toggleCondition(item, ULDDataOfID.id)"
+                    >
+                      {{ item.conditionId | slice: 0: 3 }}
+                    </span>
+                  </span>
+                  <span *ngIf="uldType.key == 'Additional ULDs'">
+                    <mat-icon class="mt-2 pt-0.5" (click)="removeULDFromData(item, item.id)" class="cursor-pointer">
+                      do_not_disturb_on
+                    </mat-icon>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>    
+  </div>
+  </section>
+</div>
