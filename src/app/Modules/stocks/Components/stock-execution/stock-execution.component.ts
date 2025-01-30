@@ -494,6 +494,7 @@ export class StockExecutionComponent implements OnInit {
                                     (itm: UldItem) => itm.id !== uldId
                                 );
                                 itemFound = true;
+                          
                             } else {
                                 const dialogRef = this.dialog.open(DialogBoxComponent, {
                                     width: '300px',
@@ -506,6 +507,7 @@ export class StockExecutionComponent implements OnInit {
                                             (itm: UldItem) => itm.id !== uldId
                                         );
                                         this.moveItemToPreviousLocation(foundItem, locationKey, uldTypeKey);
+      
                                     } else {
                                         console.log('User canceled the move. Item remains in current location.');
                                     }
@@ -530,7 +532,8 @@ export class StockExecutionComponent implements OnInit {
     if (!itemFound) {
         console.error(`Item with ID ${uldId} not found.`);
     }
-}
+    this.calculateItemSummary();
+  }
 
 
 
