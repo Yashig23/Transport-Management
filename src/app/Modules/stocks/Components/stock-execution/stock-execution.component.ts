@@ -12,6 +12,10 @@ export interface Task {
   subtasks?: Task[];
 }
 
+enum AdditionalULD {
+  AdditionalULDs = 'Additional ULDs'
+}
+
 interface UldTypeSummary {
   totalItems: number;
   serviceableItems: number;
@@ -30,7 +34,6 @@ interface ItemSummary {
   templateUrl: './stock-execution.component.html',
   styleUrl: './stock-execution.component.scss',
 })
-
 export class StockExecutionComponent implements OnInit {
   @ViewChild('ULDInput') ULDInput!: ElementRef;
   id: string | null = null;
@@ -42,7 +45,6 @@ export class StockExecutionComponent implements OnInit {
   public itemSummary: { [location: string]: ItemSummary } = {};
   public targetDataSelected!: UldItem;
   public selectedCondition: ConditionEnum = ConditionEnum.Serviceable;
-  // public groupedData!: UldItem[];
   public groupedData: { [location: string]: { [uldType: string]: UldItem[] } } = {};
   readonly task = signal<Task>({
     name: 'Found',
@@ -66,7 +68,6 @@ export class StockExecutionComponent implements OnInit {
         this.numericID = parseInt(this.id);
       }
       this.getStocksData();
-      this.calculateItemSummary();
     });
   }
 
@@ -110,20 +111,25 @@ export class StockExecutionComponent implements OnInit {
     return items.some(item => !item.isTempLocation);
   }
 
-  public findAndUpdateGroupedDataForNewUld = (
+  public findAndUpdateGroupedDataForNewUld(
     groupedData: { [location: string]: { [uldType: string]: UldItem[] } } = {},
-    uldIdentifierID: string,
-    updateCallback: (targetItem: UldItem, uldType: string, location: string) => void): boolean => {
+    uldIdentifierID: string
+  ): UldItem | undefined {
+
     for (const location of Object.keys(groupedData)) {
+
       for (const uldType of Object.keys(groupedData[location])) {
-        const targetItem = groupedData[location][uldType].find((itm: UldItem) => itm.uldItemIdentifier === uldIdentifierID && itm.isTempLocation != true);
+
+        const targetItem = groupedData[location][uldType].find(
+          (itm: UldItem) => itm.uldItemIdentifier === uldIdentifierID && !itm.isTempLocation
+        );
+
         if (targetItem) {
-          updateCallback(targetItem, uldType, location)
-          return true;
+          return targetItem; 
         }
       }
     }
-    return false;
+    return undefined;
   }
 
   public findAndUpdateGroupedData = (
@@ -131,9 +137,13 @@ export class StockExecutionComponent implements OnInit {
     id: number,
     updateCallback: (targetItem: UldItem, uldType: string, location: string) => void
   ): boolean => {
+
     for (const location of Object.keys(groupedData)) {
+
       for (const uldType of Object.keys(groupedData[location])) {
-        const targetItem = groupedData[location][uldType].find((itm: UldItem) => itm.id === id);
+
+        // Find the item by ID
+        const targetItem = groupedData[location][uldType].find((itm: UldItem) => itm.id === id && !itm.isTempLocation);
 
         if (targetItem) {
           // Apply the update logic through the callback
@@ -142,8 +152,10 @@ export class StockExecutionComponent implements OnInit {
         }
       }
     }
+
     return false; // Return false if the item is not found
   };
+
 
 
   public groupData(data: UldItem[]): void {
@@ -160,7 +172,6 @@ export class StockExecutionComponent implements OnInit {
       }
 
       acc[location][uldType].push({
-
         locationName: item.locationName,
         uldItemIdentifier: item.uldItemIdentifier,
         uldTypeShortCodee: item.uldTypeShortCodee,
@@ -170,46 +181,37 @@ export class StockExecutionComponent implements OnInit {
         id: item.id,
         previousLocation: item.previousLocation,
         isTempLocation: item.isTempLocation,
-
       });
 
       return acc;
     }, {});
 
-    // for (const location of Object.keys(this.groupedData)) {
-    //   for (const uldType of Object.keys(this.groupedData[location])) {
-    //     const additionalULDs = this.groupedData[location][uldType]
-    //       .filter((item: UldItem) => item.isTempLocation)
-    //       .sort((a: UldItem, b: UldItem) => (a.uldItemIdentifier || '').localeCompare(b.uldItemIdentifier || ''));
+    for (const location of Object.keys(this.groupedData)) {
+      const locationData = this.groupedData[location];
 
-    //     const regularULDs = this.groupedData[location][uldType].filter((item: UldItem) => !item.isTempLocation);
+      const sortedUldTypes = Object.keys(locationData).sort((a, b) => {
+        if (a === AdditionalULD.AdditionalULDs) return 1;
+        if (b === AdditionalULD.AdditionalULDs) return -1;
+        return 0;
+      });
 
-    //     this.groupedData[location][uldType] = [...regularULDs, ...additionalULDs];
-    //   }
-    // }
+      const sortedData: { [key: string]: UldItem[] } = {};
 
+      sortedUldTypes.forEach((uldType) => {
+        if (uldType === AdditionalULD.AdditionalULDs) {
+          locationData[uldType].sort((a, b) => a.uldItemIdentifier.localeCompare(b.uldItemIdentifier));
+        }
 
-    // for (const location of Object.keys(this.groupedData)) {
-    //   for (const uldType of Object.keys(this.groupedData[location])) {
-    //     // Check if the uldType is "Additional ULDs" before sorting
-    //     if (uldType === 'Additional ULDs') {
-    //       // Sort the Additional ULDs based on uldItemIdentifier
-    //       this.groupedData[location][uldType] = this.groupedData[location][uldType]
-    //         .sort((a: UldItem, b: UldItem) => (a.uldItemIdentifier || '').localeCompare(b.uldItemIdentifier || ''));
-    //     }
-    //     // Otherwise, no sorting or change for other uldTypes
-    //     else {
-    //       continue;
-    //     }
-    //   }
-    // }
+        sortedData[uldType] = locationData[uldType];
+      });
 
-
+      this.groupedData[location] = sortedData;
+    }
 
     console.log(this.groupedData);
+    this.calculateItemSummary();
 
   }
-
 
   toggleCondition(item: UldItem, parentId: number) {
     let updatePayload!: ConditionEnum;
@@ -220,8 +222,6 @@ export class StockExecutionComponent implements OnInit {
       updatePayload = ConditionEnum.Serviceable;
     }
 
-    console.log('toggleParameters', this.groupedData, item.id);
-
     const itemFound = this.findAndUpdateGroupedData(this.groupedData, item.id, (targetItem: UldItem) => {
       targetItem.conditionId = updatePayload; // Update the condition
     });
@@ -229,6 +229,8 @@ export class StockExecutionComponent implements OnInit {
     if (!itemFound) {
       throw new Error(`Item with id ${item.id} not found under parentId ${parentId}.`);
     }
+
+    this.calculateItemSummary();
   }
 
   public toggleIsFound(item: UldItem): void {
@@ -242,7 +244,14 @@ export class StockExecutionComponent implements OnInit {
     if (!isFoundUpdated) {
       throw new Error(`Item with id ${item.id} not found under parentId ${this.id} while updating isFound.`);
     }
+
+    this.calculateItemSummary();
   }
+
+  hasNonEmptyArrays(value: { [key: string]: UldItem[] }): boolean {
+    return Object.values(value).some(array => array && array.length > 0);
+  }
+
 
   public addNewULD(): void {
     if (!this.ULDId || !this.location) {
@@ -250,16 +259,8 @@ export class StockExecutionComponent implements OnInit {
       return;
     }
 
-    const randomId = Math.floor(Math.random() * 90) + 10;
-
-    // Use findAndUpdateGroupedData to locate the target element from groupedData
-    let targetElement!: UldItem;
-    const itemFound = this.findAndUpdateGroupedDataForNewUld(this.groupedData, this.ULDId, (targetItem: UldItem, uldType: string, location: string) => {
-
-      if (targetItem.uldItemIdentifier === this.ULDId && !targetItem.isTempLocation) {
-        targetElement = targetItem;
-      }
-    });
+    const randomId = Date.now();
+    const targetElement = this.findAndUpdateGroupedDataForNewUld(this.groupedData, this.ULDId);
 
     if (targetElement) {
       // If target element is found, check conditions
@@ -268,12 +269,11 @@ export class StockExecutionComponent implements OnInit {
       }
       this.targetDataSelected = targetElement;
 
-      if (targetElement.locationCurrentName !== this.location && !targetElement.isFound) {
-
+      if (targetElement.locationCurrentName !== this.location) {
         const newULDData = {
           ...this.targetDataSelected,
           locationCurrentName: this.location,
-          uldTypeShortCodee: 'Additional ULDs',
+          uldTypeShortCodee: AdditionalULD.AdditionalULDs,
           conditionId: this.selectedCondition,
           isTempLocation: false,
           id: randomId,
@@ -292,22 +292,17 @@ export class StockExecutionComponent implements OnInit {
         }
 
         // After updating the groupedData, push the new data
-        this.groupedData[this.location]['Additional ULDs'] = this.groupedData[this.location]['Additional ULDs'] || [];
-        this.groupedData[this.location]['Additional ULDs'].push(newULDData);
+        this.groupedData[this.location][AdditionalULD.AdditionalULDs] = this.groupedData[this.location][AdditionalULD.AdditionalULDs] || [];
+        this.groupedData[this.location][AdditionalULD.AdditionalULDs].push(newULDData);
 
       } else if (targetElement.locationCurrentName === this.location && targetElement.conditionId !== this.selectedCondition) {
-        // Update conditionId
-        const newULDData = {
-          ...this.targetDataSelected,
-          conditionId: this.selectedCondition,
-        };
 
         // Use findAndUpdateGroupedData to update the condition in groupedData
         this.findAndUpdateGroupedData(this.groupedData, targetElement.id, (targetItem: UldItem) => {
           targetItem.conditionId = this.selectedCondition;
         });
 
-      } else if (targetElement.locationCurrentName === this.location && targetElement.conditionId === this.selectedCondition && !targetElement.isFound) {
+      } else if (targetElement.locationCurrentName === this.location && !targetElement.isFound) {
         // Show dialog and mark as found
         const dialogRef = this.dialog.open(DialogBoxComponent, {
           width: '300px',
@@ -325,175 +320,233 @@ export class StockExecutionComponent implements OnInit {
 
       } else if (targetElement.locationCurrentName !== this.location && targetElement.conditionId === this.selectedCondition && targetElement.isFound) {
         // Show dialog to confirm moving the ULD
-        const dialogRef = this.dialog.open(DialogBoxComponent, {
-          width: '300px',
-          data: {
-            message: `Are you sure you want to move the ULD? It was already marked as found in the Location ${targetElement.locationCurrentName}`,
-          },
-        });
+        if (targetElement.uldTypeShortCodee === AdditionalULD.AdditionalULDs) {
+          const newULDData = {
+            ...this.targetDataSelected,
+            locationCurrentName: this.location,
+            uldTypeShortCodee: AdditionalULD.AdditionalULDs,
+            conditionId: this.selectedCondition,
 
-        dialogRef.afterClosed().subscribe((result) => {
-          if (result) {
-            const newULDData = {
-              ...this.targetDataSelected,
-              locationCurrentName: this.location,
-              uldTypeShortCodee: 'Additional ULDs',
-              conditionId: this.selectedCondition,
-              isTempLocation: false,
-              id: randomId,
-            };
+            isTempLocation: false,
+            id: randomId,
+          };
 
-            // Use findAndUpdateGroupedData to update the item in groupedData
-            const itemUpdated = this.findAndUpdateGroupedData(this.groupedData, targetElement.id, (targetItem: UldItem) => {
-              targetItem.isTempLocation = true;
-              targetItem.locationCurrentName = this.location;
-            });
+          // Use findAndUpdateGroupedData to update the item in groupedData
+          const itemUpdated = this.findAndUpdateGroupedData(this.groupedData, targetElement.id, (targetItem: UldItem) => {
+            targetItem.isTempLocation = true;
+            targetItem.locationCurrentName = this.location;
+          });
 
-            if (!itemUpdated) {
-              console.error(`Item with id ${targetElement.id} not found in groupedData`);
-              return;
-            }
-
-            // After updating the groupedData, push the new data
-            this.groupedData[this.location]['Additional ULDs'] = this.groupedData[this.location]['Additional ULDs'] || [];
-            this.groupedData[this.location]['Additional ULDs'].push(newULDData);
+          if (!itemUpdated) {
+            console.error(`Item with id ${targetElement.id} not found in groupedData`);
+            return;
           }
-        });
+
+          // After updating the groupedData, push the new data
+          this.groupedData[this.location][AdditionalULD.AdditionalULDs] = this.groupedData[this.location][AdditionalULD.AdditionalULDs] || [];
+          this.groupedData[this.location][AdditionalULD.AdditionalULDs].push(newULDData);
+        }
+        else {
+          const dialogRef = this.dialog.open(DialogBoxComponent, {
+            width: '300px',
+            data: {
+              message: `Are you sure you want to move the ULD? It was already marked as found in the Location ${targetElement.locationCurrentName}`,
+            },
+          });
+
+          dialogRef.afterClosed().subscribe((result) => {
+            if (result) {
+              const newULDData = {
+                ...this.targetDataSelected,
+                locationCurrentName: this.location,
+                uldTypeShortCodee: AdditionalULD.AdditionalULDs,
+                conditionId: this.selectedCondition,
+                isTempLocation: false,
+                id: randomId,
+              };
+
+              // Use findAndUpdateGroupedData to update the item in groupedData
+              const itemUpdated = this.findAndUpdateGroupedData(this.groupedData, targetElement.id, (targetItem: UldItem) => {
+                targetItem.isTempLocation = true;
+                targetItem.locationCurrentName = this.location;
+              });
+
+              if (!itemUpdated) {
+                console.error(`Item with id ${targetElement.id} not found in groupedData`);
+                return;
+              }
+
+              // After updating the groupedData, push the new data
+              this.groupedData[this.location][AdditionalULD.AdditionalULDs] = this.groupedData[this.location][AdditionalULD.AdditionalULDs] || [];
+              this.groupedData[this.location][AdditionalULD.AdditionalULDs].push(newULDData);
+            }
+          });
+        }
       }
 
       this.calculateItemSummary();
     } else {
       // If target element not found, create a new ULD entry
+      let isFoundValue: boolean;
+      if (this.selectedCondition == ConditionEnum.Serviceable) {
+        isFoundValue = true;
+      }
+      else {
+        isFoundValue = false;
+      }
       const newULDData = {
         id: randomId,
         locationName: this.location,
         uldItemIdentifier: this.ULDId,
-        uldTypeShortCodee: 'Additional ULDs',
+        uldTypeShortCodee: AdditionalULD.AdditionalULDs,
         locationCurrentName: this.location,
         previousLocation: this.location,
         conditionId: this.selectedCondition,
-        isFound: false,
+        isFound: isFoundValue,
         isTempLocation: false,
       };
 
       // Add the new item to groupedData using findAndUpdateGroupedData (it will be a new entry)
       this.groupedData[this.location] = this.groupedData[this.location] || {};
-      this.groupedData[this.location]['Additional ULDs'] = this.groupedData[this.location]['Additional ULDs'] || [];
-      this.groupedData[this.location]['Additional ULDs'].push(newULDData);
+      this.groupedData[this.location][AdditionalULD.AdditionalULDs] = this.groupedData[this.location][AdditionalULD.AdditionalULDs] || [];
+      this.groupedData[this.location][AdditionalULD.AdditionalULDs].push(newULDData);
 
       this.calculateItemSummary();
+      this.ULDId = '';
     }
+    this.ULDId = '';
+    // Extract all ULD items into an array
+    const flattenedData: UldItem[] = [];
+    for (const location of Object.keys(this.groupedData)) {
+      for (const uldType of Object.keys(this.groupedData[location])) {
+        flattenedData.push(...this.groupedData[location][uldType]);
+      }
+    }
+
+    // Call groupData with extracted data
+    this.groupData(flattenedData);
+    this.calculateItemSummary();
   }
 
   public removeULDFromData(item: UldItem, uldId: number): void {
+    let itemFound = false;
 
-    const itemFound = this.findAndUpdateGroupedData(this.groupedData, uldId, (targetItem: UldItem, uldType: string, location: string) => {
-      // First, remove the item from the grouped data based on uldId
-      this.groupedData[location][uldType] = this.groupedData[location][uldType].filter((itm: UldItem) => itm.id !== uldId);
-
-      if (targetItem.locationCurrentName === targetItem.previousLocation) {
-        // If the current and previous locations are the same, just remove the item
-        console.log('The current and previous locations are the same. Item removed.');
-      } else {
-
-        // After removing the item, now search for the uldItemIdentifier in the entire grouped data
+    this.findAndUpdateGroupedData(this.groupedData, uldId, (targetItem: UldItem, uldType: string, location: string) => {
+      if (targetItem.locationCurrentName !== targetItem.previousLocation) {
         let found = false;
+
         for (const locationKey in this.groupedData) {
           if (this.groupedData.hasOwnProperty(locationKey)) {
             for (const uldTypeKey in this.groupedData[locationKey]) {
-              if (this.groupedData[locationKey].hasOwnProperty(uldTypeKey)) {
-                // Search for the item by uldItemIdentifier and check if it's a temporary location
-                const foundIndex = this.groupedData[locationKey][uldTypeKey].findIndex(
-                  (itm: UldItem) => itm.uldItemIdentifier === targetItem.uldItemIdentifier && itm.isTempLocation !== false
-                );
+              const foundIndex = this.groupedData[locationKey][uldTypeKey].findIndex(
+                (itm: UldItem) => itm.uldItemIdentifier === targetItem.uldItemIdentifier && itm.isTempLocation !== false
+              );
 
-                if (foundIndex !== -1) {
-                  found = true;
-                  const foundItem = this.groupedData[locationKey][uldTypeKey][foundIndex];
+              if (foundIndex !== -1) {
+                found = true;
+                const foundItem = this.groupedData[locationKey][uldTypeKey][foundIndex];
 
-                  // Now open the dialog to ask for user confirmation to restore the item
+                if (uldTypeKey === AdditionalULD.AdditionalULDs) {
+                  this.moveItemToPreviousLocation(foundItem, locationKey, uldTypeKey);
+                  itemFound = true;
+                } else {
                   const dialogRef = this.dialog.open(DialogBoxComponent, {
                     width: '300px',
-                    data: { message: `Are you sure you want to move the ULD back to the initial location ${foundItem.previousLocation}?` },
+                    data: { message: `Move ULD back to ${foundItem.previousLocation}?` },
                   });
 
                   dialogRef.afterClosed().subscribe(result => {
                     if (result === true) {
-                      // If user confirms, restore the item
-                      this.groupedData[locationKey][uldTypeKey][foundIndex] = {
-                        ...foundItem,
-                        isTempLocation: false, // Set isTempLocation to false
-                        locationCurrentName: foundItem.previousLocation, // Restore original location
-                      };
-                      console.log('Item was found and restored to its original location after confirmation.');
+                      this.groupedData[location][uldType] = this.groupedData[location][uldType].filter(
+                        (itm: UldItem) => itm.id !== uldId
+                      );
+                      this.moveItemToPreviousLocation(foundItem, locationKey, uldTypeKey);
+                      itemFound = true;
                     } else {
-                      console.log('User canceled the restoration action.');
+                      console.log('User canceled the move. Item remains in current location.');
+                    }
+                    if (!itemFound) {
+                      throw new Error(`Item with ID ${uldId} not found.`);
                     }
                   });
-
-                  break; // Exit the loops after opening the dialog
                 }
+                break;
               }
             }
           }
-          if (found) break; // Exit the outer loop if item is found and dialog is opened
+          if (found) break;
         }
 
         if (!found) {
-          console.error('ULDItem with the given identifier was not found after removal:', targetItem);
+          console.error('ULDItem not found after removal:', targetItem);
         }
+      } else {
+        
+        this.removeItemFromGroupedData(location, uldType, uldId);
+        itemFound = true;
       }
     });
-
-    if (!itemFound) {
-      throw new Error(`Item with ID ${uldId} not found.`);
-    }
-
-    console.log('Updated grouped data:', this.groupedData);
   }
 
-  // public calculateItemSummary(): void {
-  //   // Initialize the summary object
-  //   this.itemSummary = {};
 
-  //   for (const location of Object.keys(this.groupedData)) {
-  //     this.itemSummary[location] = {
-  //       totalItems: 0,
-  //       serviceableItems: 0,
-  //       damagedItems: 0,
-  //       uldTypesSummary: {},  // To store the summary per ULD type
-  //     };
+  private moveItemToPreviousLocation(foundItem: UldItem, locationKey: string, uldTypeKey: string): void {
+    // Ensure the previous location exists
+    if (!this.groupedData[foundItem.previousLocation]) {
+      this.groupedData[foundItem.previousLocation] = {};
+    }
 
-  //     for (const uldType of Object.keys(this.groupedData[location])) {
-  //       const items = this.groupedData[location][uldType];
+    // Ensure the ULD type exists in the previous location
+    if (!this.groupedData[foundItem.previousLocation][uldTypeKey]) {
+      this.groupedData[foundItem.previousLocation][uldTypeKey] = [];
+    }
 
-  //       // Filter out items with isTempLocation === true
-  //       const filteredItems = items.filter(item => !item.isTempLocation);
+    // Add the item back to its original location
+    this.groupedData[foundItem.previousLocation][uldTypeKey].push({
+      ...foundItem,
+      isTempLocation: false,
+      locationCurrentName: foundItem.previousLocation,
+    });
 
-  //       // Count items based on condition
-  //       const totalItems = filteredItems.length;
-  //       const serviceableItems = filteredItems.filter(item => item.conditionId === 'Serviceable').length;
-  //       const damagedItems = filteredItems.filter(item => item.conditionId === 'Damaged').length;
+    // Remove it from the temporary location
+    this.groupedData[locationKey][uldTypeKey] = this.groupedData[locationKey][uldTypeKey].filter(
+      itm => itm.uldItemIdentifier !== foundItem.uldItemIdentifier
+    );
 
-  //       // Update the overall summary object
-  //       this.itemSummary[location].totalItems += totalItems;
-  //       this.itemSummary[location].serviceableItems += serviceableItems;
-  //       this.itemSummary[location].damagedItems += damagedItems;
+    // Clean up empty locations
+    this.cleanupEmptyLocations(locationKey, uldTypeKey);
+    this.calculateItemSummary();
+  }
 
-  //       // Update the ULD type specific summary
-  //       this.itemSummary[location].uldTypesSummary[uldType] = {
-  //         totalItems,
-  //         serviceableItems,
-  //         damagedItems,
-  //       };
-  //     }
-  //   }
-  // }
+  private cleanupEmptyLocations(locationKey: string, uldTypeKey: string): void {
+    if (this.groupedData[locationKey][uldTypeKey].length === 0) {
+      delete this.groupedData[locationKey][uldTypeKey];
+    }
+
+    if (Object.keys(this.groupedData[locationKey]).length === 0) {
+      delete this.groupedData[locationKey];
+    }
+  }
+
+
+  private removeItemFromGroupedData(location: string, uldType: string, uldId: number): void {
+    this.groupedData[location][uldType] = this.groupedData[location][uldType].filter(itm => itm.id !== uldId);
+
+    if (this.groupedData[location][uldType].length === 0) {
+      delete this.groupedData[location][uldType];
+    }
+
+    if (Object.keys(this.groupedData[location]).length === 0) {
+      delete this.groupedData[location];
+    }
+
+    this.calculateItemSummary();
+  }
+
 
   public calculateItemSummary(): void {
     // Initialize the summary object
     this.itemSummary = {};
-  
+
     for (const location of Object.keys(this.groupedData)) {
       this.itemSummary[location] = {
         totalItems: 0,
@@ -501,23 +554,23 @@ export class StockExecutionComponent implements OnInit {
         damagedItems: 0,
         uldTypesSummary: {},  // Ensure this is initialized
       };
-  
+
       for (const uldType of Object.keys(this.groupedData[location])) {
         const items = this.groupedData[location][uldType];
-  
+
         // Filter out items with isTempLocation === true
         const filteredItems = items.filter(item => !item.isTempLocation);
-  
+
         // Count items based on condition
         const totalItems = filteredItems.length;
         const serviceableItems = filteredItems.filter(item => item.conditionId === 'Serviceable').length;
         const damagedItems = filteredItems.filter(item => item.conditionId === 'Damaged').length;
-  
+
         // Update the overall summary object
         this.itemSummary[location].totalItems += totalItems;
         this.itemSummary[location].serviceableItems += serviceableItems;
         this.itemSummary[location].damagedItems += damagedItems;
-  
+
         // Ensure that uldTypesSummary exists for this uldType before accessing it
         if (!this.itemSummary[location].uldTypesSummary[uldType]) {
           this.itemSummary[location].uldTypesSummary[uldType] = {
@@ -526,7 +579,7 @@ export class StockExecutionComponent implements OnInit {
             damagedItems: 0,
           };
         }
-  
+
         // Update the ULD type-specific summary
         this.itemSummary[location].uldTypesSummary[uldType].totalItems += totalItems;
         this.itemSummary[location].uldTypesSummary[uldType].serviceableItems += serviceableItems;
@@ -534,7 +587,7 @@ export class StockExecutionComponent implements OnInit {
       }
     }
   }
-  
+
 
   saveStatus(): void {
     const missingItemsCount = this.getMissingItemsCount();
@@ -559,7 +612,7 @@ export class StockExecutionComponent implements OnInit {
                 uldOfItems.items.push({
                   locationName: item.locationName,
                   uldItemIdentifier: item.uldItemIdentifier,
-                  uldTypeShortCodee: item.uldTypeShortCodee ? item.uldTypeShortCodee : 'Additional ULDs',
+                  uldTypeShortCodee: item.uldTypeShortCodee ? item.uldTypeShortCodee : AdditionalULD.AdditionalULDs,
                   locationCurrentName: item.locationCurrentName,
                   previousLocation: item.previousLocation,
                   isFound: item.isFound,
@@ -572,7 +625,6 @@ export class StockExecutionComponent implements OnInit {
           });
           this.ULDDataOfID.items = [];
           this.ULDDataOfID.items.push(...uldOfItems.items);
-          console.log("Updated ULDOfID for saving", this.ULDDataOfID);
           if (this.ULDDataOfID) {
             this.stocks_service.updateDataInStockExecution(this.ULDDataOfID, this.numericID).subscribe({
               next: (result) => {
@@ -600,7 +652,7 @@ export class StockExecutionComponent implements OnInit {
             uldOfItems.items.push({
               locationName: item.locationName,
               uldItemIdentifier: item.uldItemIdentifier,
-              uldTypeShortCodee: item.uldTypeShortCodee ? item.uldTypeShortCodee : 'Additional ULDs',
+              uldTypeShortCodee: item.uldTypeShortCodee ? item.uldTypeShortCodee : AdditionalULD.AdditionalULDs,
               locationCurrentName: item.locationCurrentName,
               previousLocation: item.previousLocation,
               isFound: item.isFound,
@@ -615,7 +667,6 @@ export class StockExecutionComponent implements OnInit {
       // Directly update ULDDataOfID and save without confirmation
       this.ULDDataOfID.items = [];
       this.ULDDataOfID.items.push(...uldOfItems.items);
-      console.log("Directly updated ULDOfID for saving", this.ULDDataOfID);
 
       if (this.ULDDataOfID) {
         this.stocks_service.updateDataInStockExecution(this.ULDDataOfID, this.numericID).subscribe({
