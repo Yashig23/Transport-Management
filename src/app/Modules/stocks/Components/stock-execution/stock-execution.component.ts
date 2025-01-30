@@ -467,7 +467,7 @@ export class StockExecutionComponent implements OnInit {
     this.groupData(flattenedData);
     this.calculateItemSummary();
     this.selectedCondition = ConditionEnum.Serviceable;
-    this.selectedLocation = this.ULDDataOfID.locations[0];
+    this.location = this.ULDDataOfID.locations[0].locationName;
   }
 
   public removeULDFromData(item: UldItem, uldId: number): void {
