@@ -4,6 +4,7 @@ import { StockService } from '../../Services/stocks.service';
 import { CargoStatus, Location, UldItem, ConditionEnum, GroupedData } from '../../Constants/service.constants';
 import { signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { toasterService } from '../../../transport/Services/toaster.service';
 import { DialogBoxComponent } from '../../../shared/sharedComponents/Components/dialog-box/dialog-box.component';
 
 export interface Task {
@@ -56,7 +57,7 @@ export class StockExecutionComponent implements OnInit {
   ]
 
   constructor(private route: ActivatedRoute, private stocks_service: StockService, private cdr: ChangeDetectorRef,
-    private dialog: MatDialog,
+    private dialog: MatDialog, private toaster: toasterService
   ) {
 
   }
@@ -125,7 +126,28 @@ export class StockExecutionComponent implements OnInit {
         );
 
         if (targetItem) {
-          return targetItem; 
+          return targetItem;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  public findHiddenAndUpdateGroupedData(
+    groupedData: { [location: string]: { [uldType: string]: UldItem[] } } = {},
+    uldIdentifierID: string
+  ): UldItem | undefined {
+
+    for (const location of Object.keys(groupedData)) {
+
+      for (const uldType of Object.keys(groupedData[location])) {
+
+        const targetItem = groupedData[location][uldType].find(
+          (itm: UldItem) => itm.uldItemIdentifier === uldIdentifierID && itm.isTempLocation
+        );
+
+        if (targetItem) {
+          return targetItem;
         }
       }
     }
@@ -259,7 +281,7 @@ export class StockExecutionComponent implements OnInit {
       return;
     }
 
-    const randomId = Date.now();
+    const randomId = Date.now() + Math.floor(Math.random() * 1000);
     const targetElement = this.findAndUpdateGroupedDataForNewUld(this.groupedData, this.ULDId);
 
     if (targetElement) {
@@ -269,7 +291,25 @@ export class StockExecutionComponent implements OnInit {
       }
       this.targetDataSelected = targetElement;
 
-      if (targetElement.locationCurrentName !== this.location) {
+      if (targetElement.locationCurrentName !== this.location && targetElement.locationCurrentName != targetElement.previousLocation && targetElement.previousLocation == this.location) {
+        const foundHiddenElement = this.findHiddenAndUpdateGroupedData(this.groupedData, this.ULDId);
+
+        if (foundHiddenElement) {
+          foundHiddenElement.isTempLocation = false;
+          foundHiddenElement.previousLocation = this.location;
+          foundHiddenElement.locationCurrentName = this.location;
+
+          // **Remove the targetElement from its current location**
+          const currentLocation = targetElement.locationCurrentName;
+          if (this.groupedData[currentLocation] && this.groupedData[currentLocation][AdditionalULD.AdditionalULDs]) {
+            this.groupedData[currentLocation][AdditionalULD.AdditionalULDs] =
+              this.groupedData[currentLocation][AdditionalULD.AdditionalULDs].filter(item => item.id !== targetElement.id);
+          }
+
+        }
+      }
+
+      if (targetElement.locationCurrentName !== this.location && targetElement.locationCurrentName === targetElement.previousLocation) {
         const newULDData = {
           ...this.targetDataSelected,
           locationCurrentName: this.location,
@@ -426,67 +466,72 @@ export class StockExecutionComponent implements OnInit {
     // Call groupData with extracted data
     this.groupData(flattenedData);
     this.calculateItemSummary();
+    this.selectedCondition = ConditionEnum.Serviceable;
+    this.selectedLocation = this.ULDDataOfID.locations[0];
   }
 
   public removeULDFromData(item: UldItem, uldId: number): void {
     let itemFound = false;
 
     this.findAndUpdateGroupedData(this.groupedData, uldId, (targetItem: UldItem, uldType: string, location: string) => {
-      if (targetItem.locationCurrentName !== targetItem.previousLocation) {
-        let found = false;
+        if (targetItem.locationCurrentName !== targetItem.previousLocation) {
+            let found = false;
 
-        for (const locationKey in this.groupedData) {
-          if (this.groupedData.hasOwnProperty(locationKey)) {
-            for (const uldTypeKey in this.groupedData[locationKey]) {
-              const foundIndex = this.groupedData[locationKey][uldTypeKey].findIndex(
-                (itm: UldItem) => itm.uldItemIdentifier === targetItem.uldItemIdentifier && itm.isTempLocation !== false
-              );
+            for (const locationKey in this.groupedData) {
+                if (this.groupedData.hasOwnProperty(locationKey)) {
+                    for (const uldTypeKey in this.groupedData[locationKey]) {
+                        const foundIndex = this.groupedData[locationKey][uldTypeKey].findIndex(
+                            (itm: UldItem) => itm.uldItemIdentifier === targetItem.uldItemIdentifier && itm.isTempLocation !== false
+                        );
 
-              if (foundIndex !== -1) {
-                found = true;
-                const foundItem = this.groupedData[locationKey][uldTypeKey][foundIndex];
+                        if (foundIndex !== -1) {
+                            found = true;
+                            const foundItem = this.groupedData[locationKey][uldTypeKey][foundIndex];
 
-                if (uldTypeKey === AdditionalULD.AdditionalULDs) {
-                  this.moveItemToPreviousLocation(foundItem, locationKey, uldTypeKey);
-                  itemFound = true;
-                } else {
-                  const dialogRef = this.dialog.open(DialogBoxComponent, {
-                    width: '300px',
-                    data: { message: `Move ULD back to ${foundItem.previousLocation}?` },
-                  });
+                            if (foundItem.uldTypeShortCodee === AdditionalULD.AdditionalULDs && uldTypeKey === AdditionalULD.AdditionalULDs) {
 
-                  dialogRef.afterClosed().subscribe(result => {
-                    if (result === true) {
-                      this.groupedData[location][uldType] = this.groupedData[location][uldType].filter(
-                        (itm: UldItem) => itm.id !== uldId
-                      );
-                      this.moveItemToPreviousLocation(foundItem, locationKey, uldTypeKey);
-                      itemFound = true;
-                    } else {
-                      console.log('User canceled the move. Item remains in current location.');
+                                this.groupedData[locationKey][uldTypeKey] = this.groupedData[locationKey][uldTypeKey].filter(
+                                    (itm: UldItem) => itm.id !== uldId
+                                );
+                                itemFound = true;
+                            } else {
+                                const dialogRef = this.dialog.open(DialogBoxComponent, {
+                                    width: '300px',
+                                    data: { message: `Move ULD back to ${foundItem.previousLocation}?` },
+                                });
+
+                                dialogRef.afterClosed().subscribe(result => {
+                                    if (result === true) {
+                                        this.groupedData[location][uldType] = this.groupedData[location][uldType].filter(
+                                            (itm: UldItem) => itm.id !== uldId
+                                        );
+                                        this.moveItemToPreviousLocation(foundItem, locationKey, uldTypeKey);
+                                    } else {
+                                        console.log('User canceled the move. Item remains in current location.');
+                                    }
+                                });
+                            }
+                            break;
+                        }
                     }
-                    if (!itemFound) {
-                      throw new Error(`Item with ID ${uldId} not found.`);
-                    }
-                  });
                 }
-                break;
-              }
+                if (found) break;
             }
-          }
-          if (found) break;
-        }
 
-        if (!found) {
-          console.error('ULDItem not found after removal:', targetItem);
+            if (!found) {
+                console.error('ULDItem not found after removal:', targetItem);
+            }
+        } else {
+            this.removeItemFromGroupedData(location, uldType, uldId);
+            itemFound = true;
         }
-      } else {
-        
-        this.removeItemFromGroupedData(location, uldType, uldId);
-        itemFound = true;
-      }
     });
-  }
+
+    if (!itemFound) {
+        console.error(`Item with ID ${uldId} not found.`);
+    }
+}
+
 
 
   private moveItemToPreviousLocation(foundItem: UldItem, locationKey: string, uldTypeKey: string): void {
@@ -588,8 +633,52 @@ export class StockExecutionComponent implements OnInit {
     }
   }
 
-
   saveStatus(): void {
+    // Helper function to flatten groupedData
+    const flattenGroupedData = (): { items: UldItem[] } => {
+      const uldOfItems: { items: UldItem[] } = { items: [] };
+      
+      Object.values(this.groupedData).forEach(locationData => {
+        Object.values(locationData).forEach(uldTypeData => {
+          uldTypeData.forEach(item => {
+            uldOfItems.items.push({
+              locationName: item.locationName,
+              uldItemIdentifier: item.uldItemIdentifier,
+              uldTypeShortCodee: item.uldTypeShortCodee ? item.uldTypeShortCodee : AdditionalULD.AdditionalULDs,
+              locationCurrentName: item.locationCurrentName,
+              previousLocation: item.previousLocation,
+              isFound: item.isFound,
+              conditionId: item.conditionId,
+              id: item.id,
+              isTempLocation: item.isTempLocation,
+            });
+          });
+        });
+      });
+  
+      return uldOfItems;
+    };
+  
+    const uldOfItems = flattenGroupedData();
+    this.ULDDataOfID.items = [...uldOfItems.items]; // Assign flattened data
+  
+    if (this.ULDDataOfID) {
+      this.stocks_service.updateDataInStockExecution(this.ULDDataOfID, this.numericID).subscribe({
+        next: (result) => {
+          this.toaster.toasterSuccess('Saved Successfully');
+        },
+        error: (err) => {
+          this.toaster.toasterError("Error occurred while saving the data");
+        }
+      });
+    } else {
+      console.log('Save action canceled.');
+    }
+  }
+  
+
+
+  openConfirmationBox(): void {
     const missingItemsCount = this.getMissingItemsCount();
 
     if (missingItemsCount > 0) {
@@ -628,10 +717,10 @@ export class StockExecutionComponent implements OnInit {
           if (this.ULDDataOfID) {
             this.stocks_service.updateDataInStockExecution(this.ULDDataOfID, this.numericID).subscribe({
               next: (result) => {
-                console.log("Result of the data", result);
+                this.toaster.toasterSuccess('Saved successfully');
               },
               error: (err) => {
-                console.error("Error occured while saving the data", err);
+                this.toaster.toasterError("Error occured while saving the data");
               }
             })
           } else {
